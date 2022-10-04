@@ -16,3 +16,13 @@ Controls:
     right click to finish your tree without using the full number of seeds
 
     after submitting the maximum number of unique trees for a level the next level will automatically begin
+
+
+Three Body Problem game
+
+Try to manipulate the Earth and its moon using a planetary mass black hole
+
+Controls:
+    Hold right click and drag up or down to increase/decrease the gravitational attraction of your mouse pointer
+    Move the mouse pointer to move the position of the anomaly and pull the planetary system around
+    Left click to reset the system on the screen
