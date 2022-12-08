@@ -26,3 +26,15 @@ Controls:
     Hold right click and drag up or down to increase/decrease the gravitational attraction of your mouse pointer
     Move the mouse pointer to move the position of the anomaly and pull the planetary system around
     Left click to reset the system on the screen
+
+
+Shooter game
+
+It's a side-scrolling shoot 'em up.
+Navigate around grey obstacles.
+Direct your fire at the square orange enemies.
+Avoid the red bullets fired at you.
+
+Controls:
+    Move the mouse to move your ship, it fires automatically.
+    Press any key to start the game or pause while playing.
