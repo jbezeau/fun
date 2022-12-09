@@ -14,11 +14,19 @@ def draw_status_text(status, colour=(0, 32, 0)):
     s.screen.blit(text_output, text_rect)
 
 
+def draw_ship_text(ship, colour=(32, 32, 32)):
+    size = 128
+    font = pygame.font.Font(None, size)
+    text_output = font.render('FIGHTER ' + ship, True, colour)
+    text_rect = text_output.get_rect(centerx=s.screen.get_width() // 2, centery=s.screen.get_height()*3/4)
+    s.screen.blit(text_output, text_rect)
+
+
 def draw_score_text(points, colour=(32, 32, 32)):
     size = 128
     font = pygame.font.Font(None, size)
     text_output = font.render('SCORE ' + str(points), True, colour)
-    text_rect = text_output.get_rect(centerx=s.screen.get_width() // 2, centery=s.screen.get_height()*3/4)
+    text_rect = text_output.get_rect(centerx=s.screen.get_width() // 2, centery=s.screen.get_height()//4)
     s.screen.blit(text_output, text_rect)
 
 
@@ -85,9 +93,11 @@ if __name__ == '__main__':
                 if timer == 0:
                     draw_status_text('START')
                 elif not p1.alive():
+                    draw_ship_text(p1.name)
                     draw_status_text('GAME OVER', (64, 0, 0))
                     draw_score_text(score)
                 elif not active:
+                    draw_ship_text(p1.name)
                     draw_status_text('PAUSE')
                     draw_score_text(score)
 
