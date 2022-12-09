@@ -14,6 +14,14 @@ def draw_status_text(status, colour=(0, 32, 0)):
     s.screen.blit(text_output, text_rect)
 
 
+def draw_score_text(points, colour=(32, 32, 32)):
+    size = 128
+    font = pygame.font.Font(None, size)
+    text_output = font.render('SCORE ' + str(points), True, colour)
+    text_rect = text_output.get_rect(centerx=s.screen.get_width() // 2, centery=s.screen.get_height()*3/4)
+    s.screen.blit(text_output, text_rect)
+
+
 if __name__ == '__main__':
     clock = pygame.time.Clock()
     pygame.display.set_caption('Shooter: I can work it out')
@@ -21,6 +29,7 @@ if __name__ == '__main__':
     new_game = True
     while new_game:
         start = (s.screen.get_width()//3, s.screen.get_height()//2)
+        score = 0
         p1 = player.build_ship(start)
 
         env.parallax.empty()
@@ -36,7 +45,10 @@ if __name__ == '__main__':
         while playing:
             clock.tick(60)
             s.screen.fill(s.SPACE)
+
             if active and p1.alive():
+                score += len(player.ship) + len(enemy.objects) + len(enemy.bullets)
+
                 env.objects.update()
                 env.parallax.update()
                 pygame.sprite.groupcollide(enemy.objects, env.objects, True, False)
@@ -52,6 +64,8 @@ if __name__ == '__main__':
                 enemy.bullets.update()
                 pygame.sprite.groupcollide(player.ship, enemy.objects, True, True)
                 pygame.sprite.groupcollide(player.ship, enemy.bullets, True, True)
+
+                draw_status_text(str(score), (16, 16, 16))
 
                 env.parallax.draw(s.screen)
                 player.bullets.draw(s.screen)
@@ -72,8 +86,10 @@ if __name__ == '__main__':
                     draw_status_text('START')
                 elif not p1.alive():
                     draw_status_text('GAME OVER', (64, 0, 0))
+                    draw_score_text(score)
                 elif not active:
                     draw_status_text('PAUSE')
+                    draw_score_text(score)
 
             pygame.display.flip()
 

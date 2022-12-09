@@ -1,31 +1,22 @@
 import pygame
 import math
+import random
 import static as s
+
 
 ship = pygame.sprite.Group()
 bullets = pygame.sprite.Group()
 
 
-def build_ship(pos):
-    new = Player(pos)
-    ship.add(new)
-    ship.add(CurveGun(new, (8, 4)))
-    ship.add(CurveGun(new, (8, -4)))
-    ship.add(FwdGun(new, (-8, 6)))
-    ship.add(FwdGun(new, (-8, -6)))
-    ship.add(Engine(new, (-16, 6)))
-    ship.add(Engine(new, (-16, -6)))
-    return new
-
-
 class Player(pygame.sprite.Sprite):
-    def __init__(self, pos):
+    def __init__(self, pos, name=None):
         super(Player, self).__init__()
         self.image = pygame.Surface((8, 8))
         self.image.fill(s.PLAYER)
         self.image.set_colorkey(s.SPACE)
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = pos
+        self.name = name
 
     def update(self):
         v = math.sqrt(s.distance((self.rect.x, self.rect.y), pygame.mouse.get_pos()))
@@ -111,7 +102,7 @@ class Engine(ShipPart):
 
     def update(self):
         super(Engine, self).update()
-        bullets.add(Explosion((self.rect.x-15, self.rect.y-6), 11))
+        bullets.add(Explosion((self.rect.x-15, self.rect.y-7), 11))
 
 
 class Shot(pygame.sprite.Sprite):
@@ -120,6 +111,7 @@ class Shot(pygame.sprite.Sprite):
         self.vel_x, self.vel_y = s.direction(pos, destination)
         self.vel_x *= 8
         self.vel_y *= 8
+        self.vel_y += 0.5  # fix rounding
         self.image = pygame.Surface((7, 7))
         self.image.fill(s.SPACE)
         self.image.set_colorkey(s.SPACE)
@@ -134,11 +126,6 @@ class Shot(pygame.sprite.Sprite):
 
 
 class Curve(Shot):
-    def __init__(self, pos, destination):
-        super(Curve, self).__init__(pos, destination)
-        # adjust for rounding
-        self.vel_y += 0.5
-
     def update(self):
         super(Curve, self).update()
         if self.vel_y > 0.1:
@@ -156,12 +143,114 @@ class Explosion(pygame.sprite.Sprite):
         self.image.set_colorkey(s.SPACE)
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = pos
+        self.color = s.PLAYER_BULLET
 
     def update(self):
         self.image.fill(s.SPACE)
-        pygame.draw.circle(surface=self.image, color=s.PLAYER_BULLET,
+        pygame.draw.circle(surface=self.image, color=self.color,
                            center=(self.size, self.size), radius=self.radius)
         self.radius = self.radius * 7/8
+        self.color = (self.color[0], self.color[1]*7/8, self.color[2]*15/16)
         if self.radius < 1:
             self.kill()
             del self
+
+
+def tiger(pos):
+    new = Player(pos)
+    new.name = 'Tiger'
+    ship.add(new)
+    ship.add(CurveGun(new, (8, 4)))
+    ship.add(CurveGun(new, (8, -4)))
+    ship.add(FwdGun(new, (-8, 6)))
+    ship.add(FwdGun(new, (-8, -6)))
+    ship.add(Engine(new, (-16, 6)))
+    ship.add(Engine(new, (-16, -6)))
+    return new
+
+
+def panther(pos):
+    new = Player(pos)
+    new.name = 'Panther'
+    ship.add(new)
+    ship.add(FwdGun(new, (8, 0)))
+    ship.add(FwdGun(new, (16, 0)))
+    ship.add(Turret(new, (-8, 4)))
+    ship.add(Turret(new, (-8, -4)))
+    ship.add(Turret(new, (-12, 12)))
+    ship.add(Turret(new, (-12, -12)))
+    ship.add(Engine(new, (-16, 4)))
+    ship.add(Engine(new, (-16, -4)))
+    return new
+
+
+def lion(pos):
+    new = Player(pos)
+    new.name = 'Lion'
+    ship.add(new)
+    ship.add(SideGun(new, (16, 4)))
+    ship.add(SideGun(new, (16, -4)))
+    ship.add(SideGun(new, (8, 8)))
+    ship.add(SideGun(new, (8, 0)))
+    ship.add(SideGun(new, (8, -8)))
+    ship.add(Turret(new, (-8, 4)))
+    ship.add(Turret(new, (-8, -4)))
+    ship.add(Engine(new, (-16, 6)))
+    ship.add(Engine(new, (-16, -6)))
+    return new
+
+
+ship_functions = {'Tiger': tiger, 'Panther': panther, 'Lion': lion}
+
+
+def build_ship(pos, name=None):
+    if name is None:
+        i = random.randrange(len(ship_functions))
+        build_function = list(ship_functions.values())[i]
+        return build_function(pos)
+    else:
+        build_function = ship_functions.get(name)
+        return build_function(pos)
+
+
+def draw_ship_name(name, colour=(0, 32, 0)):
+    size = min(512, 2600 // len(name))
+    font = pygame.font.Font(None, size)
+    text_output = font.render(name, True, colour)
+    text_rect = text_output.get_rect(centerx=s.screen.get_width() // 2, centery=s.screen.get_height()//2)
+    s.screen.blit(text_output, text_rect)
+
+
+if __name__ == '__main__':
+    clock = pygame.time.Clock()
+    pygame.display.set_caption('Player Ship Test')
+    ship_list = list(ship_functions.keys())
+    ship_num = 0
+
+    p1 = build_ship((s.screen.get_width()//3, s.screen.get_height()//2))
+
+    timer = 0
+    playing = True
+    while playing:
+        clock.tick(60)
+        s.screen.fill(s.SPACE)
+
+        draw_ship_name(p1.name)
+
+        ship.update()
+        bullets.update()
+        bullets.draw(s.screen)
+        ship.draw(s.screen)
+
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                playing = False
+            if event.type == pygame.KEYDOWN:
+                ship.empty()
+                del p1
+                new_name = ship_list[ship_num]
+                p1 = build_ship((s.screen.get_width()//3, s.screen.get_height()//2), new_name)
+                ship_num = (ship_num + 1) % len(ship_list)
+    pygame.quit()

@@ -8,8 +8,8 @@ SHIP = (128, 64, 192)
 OBSTACLE = (64, 64, 64)
 SHADOW = (32, 32, 32)
 
-ENEMY_BULLET = (255, 128, 128)
-PLAYER_BULLET = (128, 128, 255)
+ENEMY_BULLET = (255, 192, 128)
+PLAYER_BULLET = (128, 192, 255)
 
 
 def direction(pos, destination):
