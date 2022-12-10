@@ -122,6 +122,7 @@ class Shot(pygame.sprite.Sprite):
     def update(self):
         self.rect.x += self.vel_x
         self.rect.y += self.vel_y
+        bullets.add(Trail((self.rect.x, self.rect.y), 3))
         s.check_bounds(self)
 
 
@@ -151,6 +152,18 @@ class Explosion(pygame.sprite.Sprite):
                            center=(self.size, self.size), radius=self.radius)
         self.radius = self.radius * 7/8
         self.color = (self.color[0], self.color[1]*7/8, self.color[2]*15/16)
+        if self.radius < 1:
+            self.kill()
+            del self
+
+
+class Trail(Explosion):
+    def update(self):
+        self.image.fill(s.SPACE)
+        pygame.draw.circle(surface=self.image, color=self.color,
+                           center=(self.size, self.size), radius=self.radius)
+        self.radius = self.radius * 3/4
+        self.color = (self.color[0], self.color[1]*3/4, self.color[2]*7/8)
         if self.radius < 1:
             self.kill()
             del self
