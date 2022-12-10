@@ -83,7 +83,23 @@ class CurveGun(ShipPart):
                               (self.rect.x + self.x_offset, self.rect.y + self.y_offset)))
 
 
+class TailCurveGun(ShipPart):
+    # fires a curve shot with its x direction reversed, so it aims forward if mounted behind cockpit
+    def __init__(self, parent, offset):
+        super(TailCurveGun, self).__init__(parent, offset)
+        self.cooldown = 8
+        self.timer = 0
+
+    def update(self):
+        super(TailCurveGun, self).update()
+        self.timer = (self.timer + 1) % self.cooldown
+        if self.timer == 0:
+            bullets.add(Curve((self.rect.x, self.rect.y),
+                              (self.rect.x - self.x_offset, self.rect.y + self.y_offset)))
+
+
 class Turret(ShipPart):
+    # fires towards mouse position, from gun through hit box when ship is at rest
     def __init__(self, parent, offset):
         super(Turret, self).__init__(parent, offset)
         self.cooldown = 8
@@ -94,6 +110,20 @@ class Turret(ShipPart):
         self.timer = (self.timer + 1) % self.cooldown
         if self.timer == 0:
             bullets.add(Shot((self.rect.x, self.rect.y), pygame.mouse.get_pos()))
+
+
+class TailTurret(ShipPart):
+    # turret that fires away from mouse position rather than toward
+    def __init__(self, parent, offset):
+        super(TailTurret, self).__init__(parent, offset)
+        self.cooldown = 8
+        self.timer = 0
+
+    def update(self):
+        super(TailTurret, self).update()
+        self.timer = (self.timer + 1) % self.cooldown
+        if self.timer == 0:
+            bullets.add(TailShot((self.rect.x, self.rect.y), pygame.mouse.get_pos()))
 
 
 class Engine(ShipPart):
@@ -124,6 +154,14 @@ class Shot(pygame.sprite.Sprite):
         self.rect.y += self.vel_y
         bullets.add(Trail((self.rect.x, self.rect.y), 3))
         s.check_bounds(self)
+
+
+class TailShot(Shot):
+    # shot with reversed attack direction
+    def __init__(self, pos, destination):
+        super(TailShot, self).__init__(pos, destination)
+        self.vel_x *= -1
+        self.vel_y = (self.vel_y * -1) + 0.5  # adjust for rounding
 
 
 class Curve(Shot):
@@ -170,23 +208,28 @@ class Trail(Explosion):
 
 
 def tiger(pos):
+    # constant forward firepower
     new = Player(pos)
     new.name = 'Tiger'
     ship.add(new)
     ship.add(CurveGun(new, (8, 4)))
     ship.add(CurveGun(new, (8, -4)))
-    ship.add(FwdGun(new, (-8, 6)))
-    ship.add(FwdGun(new, (-8, -6)))
+    ship.add(TailCurveGun(new, (-8, 6)))
+    ship.add(TailCurveGun(new, (-8, -6)))
+    ship.add(FwdGun(new, (-12, 14)))
+    ship.add(FwdGun(new, (-12, -14)))
     ship.add(Engine(new, (-16, 6)))
     ship.add(Engine(new, (-16, -6)))
     return new
 
 
 def panther(pos):
+    # heavy direct punch and four offensive turrets
     new = Player(pos)
     new.name = 'Panther'
     ship.add(new)
-    ship.add(FwdGun(new, (8, 0)))
+    ship.add(FwdGun(new, (8, 4)))
+    ship.add(FwdGun(new, (8, -4)))
     ship.add(FwdGun(new, (16, 0)))
     ship.add(Turret(new, (-8, 4)))
     ship.add(Turret(new, (-8, -4)))
@@ -197,7 +240,24 @@ def panther(pos):
     return new
 
 
+def jaguar(pos):
+    # balanced forward firepower and three defensive turrets
+    new = Player(pos)
+    new.name = 'Jaguar'
+    ship.add(new)
+    ship.add(TailTurret(new, (8, 4)))
+    ship.add(TailTurret(new, (8, -4)))
+    ship.add(TailTurret(new, (16, 0)))
+    ship.add(TailCurveGun(new, (-8, 4)))
+    ship.add(TailCurveGun(new, (-8, -4)))
+    ship.add(FwdGun(new, (-12, 12)))
+    ship.add(FwdGun(new, (-12, -12)))
+    ship.add(Engine(new, (-16, 0)))
+    return new
+
+
 def lion(pos):
+    # wide angle scattershot with two offensive turrets
     new = Player(pos)
     new.name = 'Lion'
     ship.add(new)
@@ -206,14 +266,15 @@ def lion(pos):
     ship.add(SideGun(new, (8, 8)))
     ship.add(SideGun(new, (8, 0)))
     ship.add(SideGun(new, (8, -8)))
-    ship.add(Turret(new, (-8, 4)))
-    ship.add(Turret(new, (-8, -4)))
+    ship.add(Turret(new, (-8, 6)))
+    ship.add(Turret(new, (-8, -6)))
     ship.add(Engine(new, (-16, 6)))
     ship.add(Engine(new, (-16, -6)))
     return new
 
 
-ship_functions = {'Tiger': tiger, 'Panther': panther, 'Lion': lion}
+# dict of ship construction functions
+ship_functions = {'Tiger': tiger, 'Panther': panther, 'Jaguar': jaguar, 'Lion': lion}
 
 
 def build_ship(pos, name=None):
