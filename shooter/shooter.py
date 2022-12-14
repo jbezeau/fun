@@ -6,10 +6,13 @@ import environment as env
 import static as s
 
 
-def draw_status_text(status, colour=(0, 32, 0)):
+def draw_status_text(status, colour=(0, 32, 0), alpha=0):
     size = min(512, 2600 // len(status))
     font = pygame.font.Font(None, size)
     text_output = font.render(status, True, colour)
+    if alpha > 0:
+        text_output = text_output.convert_alpha()
+        text_output.set_alpha(alpha)
     text_rect = text_output.get_rect(centerx=s.screen.get_width() // 2, centery=s.screen.get_height()//2)
     s.screen.blit(text_output, text_rect)
 
@@ -73,9 +76,8 @@ if __name__ == '__main__':
                 pygame.sprite.groupcollide(player.ship, enemy.objects, True, True)
                 pygame.sprite.groupcollide(player.ship, enemy.bullets, True, True)
 
-                draw_status_text(str(score), (16, 16, 16))
-
                 env.parallax.draw(s.screen)
+                draw_status_text(str(score), (96, 0, 0), alpha=96)
                 player.bullets.draw(s.screen)
                 player.ship.draw(s.screen)
                 enemy.bullets.draw(s.screen)

@@ -10,11 +10,10 @@ bullets = pygame.sprite.Group()
 def new_enemy(pos):
     # choose a random enemy type
     i = random.randrange(2)
-    match int(i):
-        case 0:
-            return objects.add(Accelerator(pos))
-        case 1:
-            return objects.add(Decelerator(pos))
+    if i:
+        return objects.add(Accelerator(pos))
+    else:
+        return objects.add(Decelerator(pos))
 
 
 class Enemy(pygame.sprite.Sprite):
