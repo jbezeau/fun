@@ -69,54 +69,54 @@ def save_sprite_sheet(sheet, meta, filename):
     return filename
 
 
-def select_sprite(sheet):
-    studio.screen.blit(sheet, (0, 0))
-    pygame.display.flip()
-    selecting = True
-    while selecting:
-        studio.clock.tick(60)
-        for selecting_event in pygame.event.get():
-            if selecting_event.type == pygame.MOUSEBUTTONDOWN:
-                select_x, select_y = pygame.mouse.get_pos()
-                select_x -= select_x % studio.SPRITE_SIZE[0]
-                select_y -= select_y % studio.SPRITE_SIZE[1]
-                return pygame.Rect((select_x, select_y), studio.SPRITE_SIZE)
-
-
 def search_sprite(sheet, meta, tag):
-    if meta is None:
-        return False
-
     # draw the sheet
-    studio.screen.blit(sheet, (0, 0))
-
-    # standard tinted overlay
-    overlay = pygame.Surface(studio.SHEET_SIZE)
-    overlay = overlay.convert_alpha()
-    overlay.set_alpha(127)
-    overlay.set_colorkey(studio.COLOUR_KEY)
-    overlay.fill(studio.SCREEN_COLOUR)
-
-    tag_list = list(meta.values())
-    rect_list = list(meta.keys())
-    for i in range(len(tag_list)):
-        if tag in tag_list[i]:
-            pygame.draw.rect(overlay, studio.COLOUR_KEY, rect_list[i])
-    studio.screen.blit(overlay, (0, 0))
-    pygame.display.flip()
-
     searching = True
-    quit_searching = False
+    selection = None
     while searching:
-        studio.clock.tick(60)
-        for searching_event in pygame.event.get():
-            if searching_event.type == pygame.QUIT:
-                # pass exit to calling context
-                searching = False
-                quit_searching = True
-            if searching_event.type == pygame.KEYDOWN:
-                searching = False
-    return quit_searching
+        studio.screen.blit(sheet, (0, 0))
+
+        if meta and tag:
+            # standard tinted overlay
+            overlay = pygame.Surface(studio.SHEET_SIZE)
+            overlay = overlay.convert_alpha()
+            overlay.set_alpha(127)
+            overlay.set_colorkey(studio.COLOUR_KEY)
+            overlay.fill(studio.SCREEN_COLOUR)
+
+            tag_list = list(meta.values())
+            rect_list = list(meta.keys())
+            for i in range(len(tag_list)):
+                if tag in tag_list[i]:
+                    pygame.draw.rect(overlay, studio.COLOUR_KEY, rect_list[i])
+            studio.screen.blit(overlay, (0, 0))
+        pygame.display.flip()
+
+        selecting = True
+        while selecting:
+            studio.clock.tick(60)
+            for selecting_event in pygame.event.get():
+                if selecting_event.type == pygame.QUIT:
+                    # pass exit to calling context
+                    selecting = False
+                    searching = False
+                if selecting_event.type == pygame.KEYDOWN:
+                    # escape is a more sensible way to back out of search
+                    if selecting_event.key == pygame.K_ESCAPE:
+                        selecting = False
+                        searching = False
+                    else:
+                        # enter new search term and redraw
+                        tag = studio.get_text_input('Enter tag to search: ', tag)
+                        selecting = False
+                if selecting_event.type == pygame.MOUSEBUTTONDOWN:
+                    select_x, select_y = pygame.mouse.get_pos()
+                    select_x -= select_x % studio.SPRITE_SIZE[0]
+                    select_y -= select_y % studio.SPRITE_SIZE[1]
+                    searching = False
+                    selecting = False
+                    selection = pygame.Rect((select_x, select_y), studio.SPRITE_SIZE)
+    return selection
 
 
 if __name__ == '__main__':
@@ -124,7 +124,6 @@ if __name__ == '__main__':
 
     sprite_sheet, sprite_meta, save_filename = load_sprite_sheet()
     pygame.display.set_caption(save_filename)
-    studio.screen.blit(sprite_sheet, (0, 0))
 
     waiting = True
     while waiting:
@@ -132,18 +131,17 @@ if __name__ == '__main__':
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 waiting = False
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                studio.screen.blit(sprite_sheet, (0, 0))
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    sprite_rect = select_sprite(sprite_sheet)
-                    studio.draw_status_text(f'Selected sprite {tuple(sprite_rect)}')
+                studio.screen.blit(sprite_sheet, (0, 0))
                 if event.key == pygame.K_BACKQUOTE:
                     search = studio.get_text_input('Enter tag to search ', None)
                     if search is not None:
-                        q = search_sprite(sprite_sheet, sprite_meta, search)
-                        if q:
-                            waiting = False
+                        result_rect = search_sprite(sprite_sheet, sprite_meta, search)
+                        studio.draw_status_text(f'Selection: {tuple(result_rect)}')
                 else:
-                    new_filename = save_sprite_sheet(save_filename)
+                    new_filename = save_sprite_sheet(sprite_sheet, sprite_meta, save_filename)
                     if new_filename is not None:
                         save_sprite_sheet(new_filename)
                         waiting = False

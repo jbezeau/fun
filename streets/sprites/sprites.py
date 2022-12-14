@@ -138,30 +138,18 @@ if __name__ == '__main__':
                         focus_editor.get_sprite()
                         status_shown = studio.draw_status_text(
                             f'Reset edits to sprite {tuple(focus_editor.sprite)}', studio.STATUS_YELLOW)
-                    else:
-                        # escape resets all editors and brings up sprite select
-                        confirm = studio.get_text_input('Clear editors and select fresh sprite? ', 'Y')
-                        if confirm == 'Y':
-                            editors.clear()
-                            jump_sprite = sheets.select_sprite(sprite_sheet)
-                            if jump_sprite:
-                                editor_pos = pygame.Rect((16, 32), studio.EDITOR_SIZE)
-                                focus_editor = Editor(jump_sprite, editor_pos, focus_editor)
-                                editors[tuple(focus_editor.rect)] = focus_editor
-                            else:
-                                # user quit
-                                editing = False
-                                sheets.save_sprite_sheet(sprite_sheet, sprite_meta, save_filename)
                 elif event.key == pygame.K_BACKQUOTE:
                     search_default = None
                     if focus_editor:
                         search_default = focus_editor.tag
-                    search = studio.get_text_input('Enter tag to search ', search_default)
-                    quit_search = sheets.search_sprite(sprite_sheet, sprite_meta, search)
-                    if quit_search:
-                        # user quit
-                        editing = False
-                        sheets.save_sprite_sheet(sprite_sheet, sprite_meta, save_filename)
+                    search = studio.get_text_input('Enter tag to search: ', search_default)
+                    jump_sprite = sheets.search_sprite(sprite_sheet, sprite_meta, search)
+                    studio.clear_status_text()
+                    if jump_sprite:
+                        editors.clear()
+                        editor_pos = pygame.Rect((16, 32), studio.EDITOR_SIZE)
+                        focus_editor = Editor(jump_sprite, editor_pos, focus_editor)
+                        editors[tuple(focus_editor.rect)] = focus_editor
                 elif event.key == pygame.K_RETURN:
                     sprite_meta[tuple(focus_editor.sprite)] = focus_editor.save_sprite()
                     status_shown = studio.draw_status_text(
