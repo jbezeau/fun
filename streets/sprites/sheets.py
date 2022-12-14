@@ -56,17 +56,67 @@ def load_sprite_sheet():
     return None, None, None
 
 
-def save_sprite_sheet(filename):
+def save_sprite_sheet(sheet, meta, filename):
     # prompt to save work on quit or key-down
     filename = studio.get_text_input('Save file name: ', filename)
     if filename is not None:
-        pygame.image.save(sprite_sheet, filename+'.png')
+        pygame.image.save(sheet, filename+'.png')
         file = open(filename+'.meta', 'wb')
-        pickle.dump(sprite_meta, file)
+        pickle.dump(meta, file)
         studio.draw_status_text(f'{filename} saved', studio.STATUS_GREEN)
     else:
         studio.draw_status_text('Save Canceled', studio.STATUS_YELLOW)
     return filename
+
+
+def select_sprite(sheet):
+    studio.screen.blit(sheet, (0, 0))
+    pygame.display.flip()
+    selecting = True
+    while selecting:
+        studio.clock.tick(60)
+        for selecting_event in pygame.event.get():
+            if selecting_event.type == pygame.MOUSEBUTTONDOWN:
+                select_x, select_y = pygame.mouse.get_pos()
+                select_x -= select_x % studio.SPRITE_SIZE[0]
+                select_y -= select_y % studio.SPRITE_SIZE[1]
+                return pygame.Rect((select_x, select_y), studio.SPRITE_SIZE)
+
+
+def search_sprite(sheet, meta, tag):
+    if meta is None:
+        return False
+
+    # draw the sheet
+    studio.screen.blit(sheet, (0, 0))
+
+    # standard tinted overlay
+    overlay = pygame.Surface(studio.SHEET_SIZE)
+    overlay = overlay.convert_alpha()
+    overlay.set_alpha(127)
+    overlay.set_colorkey(studio.COLOUR_KEY)
+    overlay.fill(studio.SCREEN_COLOUR)
+
+    tag_list = list(meta.values())
+    rect_list = list(meta.keys())
+    for i in range(len(tag_list)):
+        if tag in tag_list[i]:
+            pygame.draw.rect(overlay, studio.COLOUR_KEY, rect_list[i])
+    studio.screen.blit(overlay, (0, 0))
+    pygame.display.flip()
+
+    searching = True
+    quit_searching = False
+    while searching:
+        studio.clock.tick(60)
+        for searching_event in pygame.event.get():
+            if searching_event.type == pygame.QUIT:
+                # pass exit to calling context
+                searching = False
+                quit_searching = True
+            if searching_event.type == pygame.KEYDOWN:
+                searching = False
+    return quit_searching
 
 
 if __name__ == '__main__':
@@ -75,16 +125,26 @@ if __name__ == '__main__':
     sprite_sheet, sprite_meta, save_filename = load_sprite_sheet()
     pygame.display.set_caption(save_filename)
     studio.screen.blit(sprite_sheet, (0, 0))
-    pygame.display.flip()
 
     waiting = True
     while waiting:
+        pygame.display.flip()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 waiting = False
             if event.type == pygame.KEYDOWN:
-                new_filename = save_sprite_sheet(save_filename)
-                if new_filename is not None:
-                    save_sprite_sheet(new_filename)
-                    waiting = False
+                if event.key == pygame.K_ESCAPE:
+                    sprite_rect = select_sprite(sprite_sheet)
+                    studio.draw_status_text(f'Selected sprite {tuple(sprite_rect)}')
+                if event.key == pygame.K_BACKQUOTE:
+                    search = studio.get_text_input('Enter tag to search ', None)
+                    if search is not None:
+                        q = search_sprite(sprite_sheet, sprite_meta, search)
+                        if q:
+                            waiting = False
+                else:
+                    new_filename = save_sprite_sheet(save_filename)
+                    if new_filename is not None:
+                        save_sprite_sheet(new_filename)
+                        waiting = False
     pygame.quit()

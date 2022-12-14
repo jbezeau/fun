@@ -5,8 +5,8 @@ import colours
 import sheets
 
 # important measurements
-SPRITE_SIZE = (8, 16)
-EDITOR_PIXEL = 16
+SPRITE_SIZE = (16, 32)
+EDITOR_PIXEL = 8
 EDITOR_SIZE = (128, 256)
 SHEET_SIZE = (1280, 960)
 PAINT_SIZE = (80, 32)
@@ -29,7 +29,7 @@ status = pygame.Surface(STATUS_SIZE)
 input_bar = pygame.Surface(STATUS_SIZE)
 
 
-def draw_status_text(text, colour):
+def draw_status_text(text, colour=STATUS_GREEN):
     status_output = font.render(text, True, (0, 0, 0))
     status_rect = status_output.get_rect(centerx=screen.get_width() // 2, centery=16)
     status.fill(colour)
@@ -87,6 +87,7 @@ def get_text_input(prompt, default):
                     typing = False
                 else:
                     input_text = input_text + typing_event.unicode
+    clear_status_text()
     return input_text
 
 
