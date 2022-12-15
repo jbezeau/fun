@@ -1,6 +1,6 @@
 SPRITE STUDIO README
 
-Sprites.py is the full studio
+sprite_studio.py is the full studio
 
 
 STARTING WORK

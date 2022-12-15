@@ -1,8 +1,5 @@
-import pickle
 import pygame
-from pygame import image
-import colours
-import sheets
+import sprite.colours
 
 # important measurements
 SPRITE_SIZE = (16, 32)
