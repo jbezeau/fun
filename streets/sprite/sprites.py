@@ -1,5 +1,5 @@
 import pygame
-import sprite.colours
+import streets.sprite.colours as colours
 
 # important measurements
 SPRITE_SIZE = (16, 32)
