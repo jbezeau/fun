@@ -1,4 +1,5 @@
 import random
+import pygame
 
 # implement SR1 damage code
 POWER = 0
@@ -24,13 +25,23 @@ FIGHT = 'Fighting'
 SHOOT = 'Shooting'
 
 
+def idle(character, _):
+    if character.is_animation_over():
+        character.set_animation('right_stand', None, None)
+
+
 # common actions for characters on the mean streets
 def punch(attacker, target):
-    # hit on frame 3
-    damage = (attacker.stats[PWR], M, 1)
-    if attacker.a_frame + attacker.a_speed > 3 >= attacker.a_frame:
+    if attacker.is_frame_num(2):
+        # hit on frame 3
+        damage = (attacker.stats[PWR], M, 1)
         dmg = fight(attacker, target, damage)
         _status(target, dmg, STUN)
+    if attacker.is_animation_over():
+        if attacker.check('left'):
+            attacker.set_animation('left_stand', None, None)
+        else:
+            attacker.set_animation('right_stand', None, None)
 
 
 def shoot(atk, tgt, dmg):
@@ -43,23 +54,28 @@ def shoot(atk, tgt, dmg):
         wound = _stage(resist, base_dmg)
         return wound[LEVEL]
     else:
-        # zero damage
-        return N
+        print('miss')
+    # zero damage
+    return N
 
 
 def fight(atk, tgt, dmg):
-    attack_roll = _roll(atk.stats.get(FIGHT), 3)
-    defend_roll = _roll(tgt.stats.get(FIGHT), 3)
-    print(f'attack: {attack_roll} vs {defend_roll}')
-    if attack_roll > defend_roll:
-        # successful attack
-        base_dmg = _stage(attack_roll - defend_roll, dmg)
-        resist = -1 * _roll(tgt.stats[RES], dmg[POWER])
-        wound = _stage(resist, base_dmg)
-        return wound[LEVEL]
+    if atk.rect.colliderect(tgt.rect):
+        attack_roll = _roll(atk.stats.get(FIGHT), 3)
+        defend_roll = _roll(tgt.stats.get(FIGHT), 3)
+        print(f'attack: {attack_roll} vs {defend_roll}')
+        if attack_roll > defend_roll:
+            # successful attack
+            base_dmg = _stage(attack_roll - defend_roll, dmg)
+            resist = -1 * _roll(tgt.stats[RES], dmg[POWER])
+            wound = _stage(resist, base_dmg)
+            return wound[LEVEL]
+        else:
+            print('block')
     else:
-        # zero damage
-        return N
+        print('miss')
+    # zero damage
+    return N
 
 
 def _status(char, lvl, dmg_type):

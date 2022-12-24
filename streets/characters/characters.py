@@ -66,9 +66,8 @@ class Actor(pygame.sprite.Sprite):
 class Model(Actor):
     def __init__(self, sheet_name, default_a):
         super(Model, self).__init__()
-        self.a_frame = 0
-        self.a_speed = 0.1
-
+        self._frame = 0
+        self._speed = 0.1
         self._sheet_name = None
         self._sheet = None
         self._tag = None
@@ -105,8 +104,8 @@ class Model(Actor):
                 self.set_animation('right_fall')
             else:
                 self.set_animation('left_fall')
-        self.a_frame = (self.a_frame + self.a_speed) % len(self._frames)
-        frame_image = self._frames[int(self.a_frame)]
+        self._frame = (self._frame + self._speed) % len(self._frames)
+        frame_image = self._frames[int(self._frame)]
         self.image = pygame.transform.scale(frame_image, CHARACTER_SIZE)
         self.image.set_colorkey(sprites.COLOUR_KEY)
 
@@ -166,6 +165,12 @@ class Model(Actor):
     def is_on_ground(self):
         return self.contact.count(CONTACT_LOW) and self.contact.count(CONTACT_CENTER)
 
+    def is_frame_num(self, num):
+        return self._frame + self._speed > num >= self._frame
+
+    def is_animation_over(self):
+        return self._frame + self._speed >= len(self._frames)
+
     def navigate(self, scene, char, obstacles):
         # NPC subclasses will override this to change how they deal with terrain
         # scene is set of interactive objects
@@ -176,8 +181,8 @@ class Model(Actor):
             self.left_input((-5, 0))
         elif self.contact.count(CONTACT_LEFT):
             self.right_input((5, 0))
-        elif self.check('smoke'):
-            self.left_input((5, 4))
+        elif self.check('smoke') or self.check('stand'):
+            self.left_input((-5, 0))
 
 
 class Character(Model):
@@ -186,24 +191,32 @@ class Character(Model):
         self.rect.x, self.rect.y = position
         self.stats = {actions.FIGHT: 4, actions.PWR: 3, actions.RES: 3}
         self.interactions = {}
+        self.selected_interaction = None
+        self._state_function = None
         self._action_function = None
-        self._action_target = None
+        self._target = None
 
     def update(self):
         super(Character, self).update()
         if self._action_function:
-            self._action_function(self, self._action_target)
+            # action function is a one-time thing, like throwing a punch
+            self._action_function(self, self._target)
+        elif self._state_function:
+            # status functions are overall behaviour profiles
+            # it coordinates moving, attacking, etc
+            self._state_function(self, self._target)
 
     def set_animation(self, animation_name, function=None, target=None):
         super(Character, self).set_animation(animation_name)
         # we want action function to be None for actions that don't need a callback
         self._action_function = function
-        self._action_target = target
+        self._target = target
 
-    def interact(self, action, char):
-        action = self.interactions.get(action)
-        if action:
-            action(char)
+    def interact(self, action_name, char):
+        action_func = self.interactions.get(action_name)
+        self.selected_interaction = action_name
+        if action_func:
+            action_func(char)
 
 
 class Punk(Character):
@@ -220,45 +233,17 @@ class Punk(Character):
             self.right_input((10, 0))
 
     def bump(self, char):
-        if self.check('walk'):
+        if self.check('walk') or self.check('stand'):
             print('Hey, asshole!')
             # NPC subclasses will override this to change character behaviour
             if char.rect.x > self.rect.x:
                 self.left_input((0, 0))
-                self.set_animation('left_stand', actions.punch, char)
-            elif 0 > self.vel_x:
+                self.set_animation('right_punch', actions.punch, char)
+            else:
                 self.right_input((0, 0))
-                self.set_animation('right_stand', actions.punch, char)
+                self.set_animation('left_punch', actions.punch, char)
         char.vel_x = 0
         char.zero_input()
-
-
-# control a character using mouse
-def get_input(mouse_input, character):
-    # handle all input, breaking it down into up/down/left right and handle states
-    adj_x = _min_limit(mouse_input[X], -3, 0)
-    adj_y = _min_limit(mouse_input[Y], -3, 0)
-
-    if mouse_input[X] == 0 and mouse_input[Y] == 0:
-        character.zero_input()
-    elif abs(adj_y) > abs(adj_x):
-        if mouse_input[Y] > 0:
-            character.down_input((adj_x, adj_y))
-        else:
-            character.up_input((adj_x, adj_y))
-    else:
-        if mouse_input[X] > 0:
-            character.right_input((adj_x, adj_y))
-        else:
-            character.left_input((adj_x, adj_y))
-
-
-def _min_limit(val, shift, min_value):
-    # min function that works for positive or negative values
-    # used for softening mouse input values
-    if val == 0:
-        return 0
-    return max(abs(val) + shift, min_value) * val//abs(val)
 
 
 def _max_limit(val, shift, max_value):

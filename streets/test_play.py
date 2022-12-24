@@ -2,6 +2,7 @@ import pygame
 import random
 import environment.obstacles as ob
 import characters.characters as ch
+import characters.player as pl
 
 
 SCREEN_SIZE = (960, 960)
@@ -44,7 +45,11 @@ def interact_loop():
                     interaction_object = ic
                     ic_interacts = list(ic.interactions.keys())
                     for ic_key in ic_interacts:
-                        interactions.add(InteractionItem(ic.rect, ic_key))
+                        if ic.selected_interaction == ic_key:
+                            text_colour = (255, 255, 128)
+                        else:
+                            text_colour = (255, 255, 255)
+                        interactions.add(InteractionItem(ic.rect, ic_key, text_colour))
 
         for interact_event in pygame.event.get():
             if interact_event.type == pygame.QUIT:
@@ -62,9 +67,9 @@ def interact_loop():
 
 
 class InteractionItem(pygame.sprite.Sprite):
-    def __init__(self, parent_sprite, name):
+    def __init__(self, parent_sprite, name, text_colour=(255, 255, 255)):
         super(InteractionItem, self).__init__()
-        self.image = interaction_font.render(name, False, (255, 255, 255), (32, 32, 0))
+        self.image = interaction_font.render(name, False, text_colour)
         self.rect = self.image.get_rect()
         self.rect.x += parent_sprite.x + random.randrange(9) - 4
         self.rect.y += parent_sprite.y + random.randrange(9) - 4
@@ -97,7 +102,7 @@ if __name__ == '__main__':
     pointer = pygame.Surface(screen.get_size())
     pointer.set_colorkey((0, 0, 0))
 
-    char = ch.Character((480, 480), 'sprite/neon_hawk', 'right_smoke')
+    char = pl.Player((480, 480), 'sprite/neon_hawk', 'right_smoke')
     shade = ch.Punk((600, 480), 'sprite/test_sheet', 'right_smoke')
     ground = ob.Obstacle((40, 800), (800, 32))
     block = ob.Obstacle((440, 780), (80, 20))
@@ -111,6 +116,7 @@ if __name__ == '__main__':
 
     player.add(char)
     non_player.add(shade)
+    interactive.add(char)
     interactive.add(shade)
     obstacles.add(ground)
     obstacles.add(block)
@@ -160,7 +166,7 @@ if __name__ == '__main__':
         for npc in collision:
             npc.bump(char)
 
-        ch.get_input(mouse_rel, char)
+        pl.get_input(mouse_rel, char)
 
         click = pygame.mouse.get_pressed()
         if click[2]:
