@@ -165,6 +165,7 @@ if __name__ == '__main__':
         collision = pygame.sprite.spritecollide(char, non_player, False, pygame.sprite.collide_mask)
         for npc in collision:
             npc.bump(char)
+            char.bump(npc)
 
         pl.get_input(mouse_rel, char)
 

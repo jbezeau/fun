@@ -4,37 +4,31 @@ import streets.characters.actions as a
 X = 0
 Y = 1
 
+# action constants
+FIGHT = 'Fight'
+SMOKE = 'Smoke'
+CASUAL = 'Act Casual'
+
 
 class Player(c.Character):
     def __init__(self, position, sheet, animation):
         super(Player, self).__init__(position, sheet, animation)
         self.stats = {a.FIGHT: 4, a.PWR: 3, a.RES: 3}
-        self.interactions = {'Smoke': self.smoke, 'Act Casual': self.casual, 'Fight': self.fight}
-
-    def bump(self, char):
-        # override default character behaviour when bumping into things
-        print('Catch these hands!')
-        # NPC subclasses will override this to change character behaviour
-        if char.rect.x > self.rect.x:
-            self.left_input((0, 0))
-            self.set_animation('left_punch', a.punch, char)
-        elif 0 > self.vel_x:
-            self.right_input((0, 0))
-            self.set_animation('right_punch', a.punch, char)
-        char.vel_x = 0
-        char.zero_input()
+        self.interactions = {SMOKE: self.smoke, CASUAL: None, FIGHT: None}
 
     def smoke(self, char):
         self.set_animation('right_smoke', a.idle, None)
-        self.action = 'Smoke'
 
-    def casual(self, char):
-        # reset other choices of idle action
-        self.action = 'Casual'
-
-    def fight(self, char):
-        # set active state to fight
-        self.action = 'Fight'
+    def bump(self, char):
+        if self.check(FIGHT):
+            # interaction states set the tone for what your character does when they bump people
+            if char.rect.x > self.rect.x:
+                self.set_animation('right_punch', a.punch, char)
+            else:
+                self.set_animation('left_punch', a.punch, char)
+        self.vel_x = 0
+        char.vel_x = 0
+        char.zero_input()
 
 
 # control a character using mouse

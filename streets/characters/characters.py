@@ -85,11 +85,12 @@ class Model(Actor):
         return False
 
     def set_animation(self, animation_name):
-        if animation_name:
+        if animation_name and self._tag != animation_name:
             frames = self._sheet.get(animation_name)
             if frames:
                 self._tag = animation_name
                 self._frames = frames
+                self._frame = 0
                 return True
         return False
 
@@ -192,7 +193,6 @@ class Character(Model):
         self.stats = {actions.FIGHT: 4, actions.PWR: 3, actions.RES: 3}
         self.interactions = {}
         self.selected_interaction = None
-        self._state_function = None
         self._action_function = None
         self._target = None
 
@@ -201,10 +201,10 @@ class Character(Model):
         if self._action_function:
             # action function is a one-time thing, like throwing a punch
             self._action_function(self, self._target)
-        elif self._state_function:
+        elif self.interactions.get(self.selected_interaction):
             # status functions are overall behaviour profiles
             # it coordinates moving, attacking, etc
-            self._state_function(self, self._target)
+            self.interactions[self.selected_interaction](self._target)
 
     def set_animation(self, animation_name, function=None, target=None):
         super(Character, self).set_animation(animation_name)
@@ -213,10 +213,15 @@ class Character(Model):
         self._target = target
 
     def interact(self, action_name, char):
-        action_func = self.interactions.get(action_name)
         self.selected_interaction = action_name
-        if action_func:
-            action_func(char)
+        self._target = char
+
+    def check(self, tag):
+        # override status check to look at state name as well
+        if super(Character, self).check(tag):
+            return True
+        if self.selected_interaction:
+            return tag in self.selected_interaction
 
 
 class Punk(Character):
