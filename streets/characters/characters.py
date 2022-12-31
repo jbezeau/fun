@@ -4,6 +4,7 @@ import pygame
 from pygame import image
 from streets.sprite import sprites
 from streets.characters import actions
+import streets.environment.objects as obj
 
 
 CHARACTER_SIZE = (64, 128)
@@ -64,7 +65,7 @@ class Actor(pygame.sprite.Sprite):
 
 
 class Model(Actor):
-    def __init__(self, sheet_name, default_a):
+    def __init__(self, position, sheet_name, default_a):
         super(Model, self).__init__()
         self._frame = 0
         self._speed = 0.1
@@ -72,8 +73,10 @@ class Model(Actor):
         self._sheet = None
         self._tag = None
         self._frames = None
+        self._locked = False
         self.set_sheet(sheet_name)
         self.set_animation(default_a)
+        self.rect.x, self.rect.y = position
 
     def set_sheet(self, sheet_name):
         if sheet_name:
@@ -84,31 +87,42 @@ class Model(Actor):
                 return True
         return False
 
-    def set_animation(self, animation_name):
-        if animation_name and self._tag != animation_name:
+    def set_animation(self, animation_name, lock=False):
+        if self._locked:
+            return False
+        elif animation_name and self._tag == animation_name:
+            return True
+        else:
             frames = self._sheet.get(animation_name)
             if frames:
                 self._tag = animation_name
                 self._frames = frames
                 self._frame = 0
+                self._locked = lock
                 return True
         return False
 
     def check(self, tag):
-        return tag in self._tag
+        if self._tag:
+            return tag in self._tag
+        return False
 
     def update(self):
         super(Model, self).update()
-        # add to mysterious state transition function
+
         if self.check('jump') and self.vel_y > STAIR_HEIGHT + 1:
             if self.check('right'):
                 self.set_animation('right_fall')
             else:
                 self.set_animation('left_fall')
-        self._frame = (self._frame + self._speed) % len(self._frames)
-        frame_image = self._frames[int(self._frame)]
-        self.image = pygame.transform.scale(frame_image, CHARACTER_SIZE)
-        self.image.set_colorkey(sprites.COLOUR_KEY)
+
+        if self._frames:
+            self._frame = (self._frame + self._speed) % len(self._frames)
+            frame_image = self._frames[int(self._frame)]
+            self.image = pygame.transform.scale(frame_image, CHARACTER_SIZE)
+            self.image.set_colorkey(sprites.COLOUR_KEY)
+            if self.is_animation_over():
+                self._locked = False
 
     def bump(self, char):
         # NPC subclasses will override this to change character behaviour
@@ -128,31 +142,31 @@ class Model(Actor):
                 self.set_animation('right_stand')
 
     def left_input(self, adj_input):
-        if self.is_on_ground():
+        if self.is_on_ground() and self.set_animation('left_walk'):
             self.vel_x = _max_limit(adj_input[X], 0, 5)
-            self.set_animation('left_walk')
 
     def right_input(self, adj_input):
-        if self.is_on_ground():
+        if self.is_on_ground() and self.set_animation('right_walk'):
             self.vel_x = _max_limit(adj_input[X], 0, 5)
-            self.set_animation('right_walk')
 
     def up_input(self, adj_input):
         if self.is_on_ground():
             # check squat first
+            jump = False
             if self.check('squat'):
                 self.vel_y = _max_limit(adj_input[Y], 0, 2*STAIR_HEIGHT)
                 if self.check('right'):
-                    self.set_animation('right_jump')
+                    jump = self.set_animation('right_jump')
                 else:
-                    self.set_animation('left_jump')
+                    jump = self.set_animation('left_jump')
             elif self.check('walk'):
                 self.vel_y = _max_limit(adj_input[Y], 0, STAIR_HEIGHT)
                 if self.check('right'):
-                    self.set_animation('right_jump')
+                    jump = self.set_animation('right_jump')
                 else:
-                    self.set_animation('left_jump')
-            self.vel_x = _max_limit(adj_input[X], 0, 5)
+                    jump = self.set_animation('left_jump')
+            if jump:
+                self.vel_x = _max_limit(adj_input[X], 0, 5)
 
     def down_input(self, adj_input):
         # down / up
@@ -170,9 +184,11 @@ class Model(Actor):
         return self._frame + self._speed > num >= self._frame
 
     def is_animation_over(self):
-        return self._frame + self._speed >= len(self._frames)
+        if self._frames:
+            return self._frame + self._speed >= len(self._frames)
+        return True
 
-    def navigate(self, scene, char, obstacles):
+    def navigate(self):
         # NPC subclasses will override this to change how they deal with terrain
         # scene is set of interactive objects
         # char is player character
@@ -187,17 +203,24 @@ class Model(Actor):
 
 
 class Character(Model):
-    def __init__(self, position, sheet, animation):
-        super(Character, self).__init__(sheet, animation)
-        self.rect.x, self.rect.y = position
-        self.stats = {actions.FIGHT: 4, actions.PWR: 3, actions.RES: 3}
+    def __init__(self, position, sheet, animation, environment):
+        super(Character, self).__init__(position, sheet, animation)
+        self.stats = {actions.STUN: 0, actions.WOUND: 0, actions.FIGHT: 4, actions.PWR: 3, actions.RES: 3}
         self.interactions = {}
         self.selected_interaction = None
         self._action_function = None
         self._target = None
+        self._item_group = None
+        self.env = environment
 
     def update(self):
         super(Character, self).update()
+        injury = max(self.stats.get(actions.STUN), self.stats.get(actions.WOUND))
+        if injury > 9:
+            if self.check('left'):
+                self.set_animation('left_die', actions.die, None, True)
+            else:
+                self.set_animation('right_die', actions.die, None, True)
         if self._action_function:
             # action function is a one-time thing, like throwing a punch
             self._action_function(self, self._target)
@@ -206,11 +229,13 @@ class Character(Model):
             # it coordinates moving, attacking, etc
             self.interactions[self.selected_interaction](self._target)
 
-    def set_animation(self, animation_name, function=None, target=None):
-        super(Character, self).set_animation(animation_name)
-        # we want action function to be None for actions that don't need a callback
-        self._action_function = function
-        self._target = target
+    def set_animation(self, animation_name, function=None, target=None, lock=False):
+        if super(Character, self).set_animation(animation_name, lock):
+            # we want action function to be None for actions that don't need a callback
+            self._action_function = function
+            self._target = target
+            return True
+        return False
 
     def interact(self, action_name, char):
         self.selected_interaction = action_name
@@ -225,10 +250,10 @@ class Character(Model):
 
 
 class Punk(Character):
-    def __init__(self, position, sheet, animation):
-        super(Punk, self).__init__(position, sheet, animation)
+    def __init__(self, position, sheet, animation, env):
+        super(Punk, self).__init__(position, sheet, animation, env)
         self.interactions = {'Provoke': self.provoke}
-        self.stats = {actions.FIGHT: 5, actions.PWR: 5, actions.RES: 5}
+        self.stats = {actions.STUN: 0, actions.WOUND: 0, actions.FIGHT: 5, actions.PWR: 5, actions.RES: 5}
 
     def provoke(self, char):
         print('You know what? Fuck you!')

@@ -1,5 +1,5 @@
 import random
-import pygame
+import streets.environment.objects as obj
 
 # implement SR1 damage code
 POWER = 0
@@ -25,9 +25,16 @@ FIGHT = 'Fighting'
 SHOOT = 'Shooting'
 
 
-def idle(character, _):
+def idle(character, _=None):
     if character.is_animation_over():
-        character.set_animation('right_stand', None, None)
+        character.selected_interaction = None
+        character.set_animation('right_stand')
+
+
+def die(character, _=None):
+    if character.is_animation_over():
+        character.env.items.add(obj.Corpse(character))
+        character.kill()
 
 
 # common actions for characters on the mean streets
@@ -39,9 +46,9 @@ def punch(attacker, target):
         _status(target, dmg, STUN)
     if attacker.is_animation_over():
         if attacker.check('left'):
-            attacker.set_animation('left_stand', None, None)
+            attacker.set_animation('left_stand')
         else:
-            attacker.set_animation('right_stand', None, None)
+            attacker.set_animation('right_stand')
 
 
 def shoot(atk, tgt, dmg):
