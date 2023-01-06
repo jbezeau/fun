@@ -20,6 +20,13 @@ class Environment:
         self.player.update()
         self.non_player.update()
 
+        item_collision = pygame.sprite.groupcollide(self.items, self.obstacles, False, False)
+        for i in item_collision:
+            obstacle_list = item_collision.get(i)
+            if obstacle_list:
+                for o in obstacle_list:
+                    o.collide(i, len(obstacle_list))
+
         collision = pygame.sprite.groupcollide(self.non_player, self.obstacles, False, False)
         # check for all contact between NPCs and obstacles
         for n in collision:

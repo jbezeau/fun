@@ -192,7 +192,7 @@ if __name__ == '__main__':
                         editor_pos = pygame.Rect((16, 32), sprites.EDITOR_SIZE)
                         focus_editor = Editor(jump_sprite, editor_pos, focus_editor)
                         editors[tuple(focus_editor.click_rect)] = focus_editor
-                elif event.key == pygame.K_RETURN:
+                elif focus_editor and event.key == pygame.K_RETURN:
                     sprite_meta[tuple(focus_editor.sprite)] = focus_editor.save_sprite()
                     status_shown = sprites.draw_status_text(
                         f'Saved sprite {sprite_meta[tuple(focus_editor.sprite)]}', sprites.STATUS_GREEN)

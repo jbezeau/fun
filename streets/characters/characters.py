@@ -110,12 +110,35 @@ class Model(Actor):
     def update(self):
         super(Model, self).update()
 
+        # apex of jump
         if self.check('jump') and self.vel_y > STAIR_HEIGHT + 1:
             if self.check('right'):
                 self.set_animation('right_fall')
             else:
                 self.set_animation('left_fall')
 
+        # landing on the ground
+        if self.contact.count(CONTACT_CENTER) > 0 and self.contact.count(CONTACT_LOW) > 0:
+            if self.check('jump'):
+                if self.vel_x > 0:
+                    self.set_animation('right_walk')
+                else:
+                    self.set_animation('left_walk')
+            if self.check('fall'):
+                if self.vel_x > 0:
+                    self.set_animation('right_squat')
+                else:
+                    self.set_animation('left_squat')
+                self.vel_x = 0
+
+        # run into wall
+        if self.contact.count(CONTACT_HIGH) or self.contact.count(CONTACT_WALL):
+            if self.check('left'):
+                self.set_animation('left_stand')
+            else:
+                self.set_animation('right_stand')
+
+        # character animation
         if self._frames:
             self._frame = (self._frame + self._speed) % len(self._frames)
             frame_image = self._frames[int(self._frame)]

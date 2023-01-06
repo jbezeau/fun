@@ -11,39 +11,27 @@ class Obstacle(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = pos
 
-    def collide(self, character, count):
-        # check contact with obstacles in the environment
-        contact_list = get_contact_pos(character.rect, self.rect)
+    def collide(self, collision_obj, count):
+        # vertical displacement
+        contact_list = get_contact_pos(collision_obj.rect, self.rect)
         if contact_list.count(ch.CONTACT_CENTER) > 0 and contact_list.count(ch.CONTACT_LOW) > 0:
-            new_y = self.rect.y - character.rect.height + ch.STAIR_HEIGHT
+            new_y = self.rect.y - collision_obj.rect.height + ch.STAIR_HEIGHT
             if count > 1:
-                # stand on highest obstacle if there's a transition
-                character.rect.y = min(new_y, character.rect.y)
+                # position on highest obstacle if there's competition
+                collision_obj.rect.y = min(new_y, collision_obj.rect.y)
             else:
-                character.rect.y = new_y
-            if character.vel_y > 0:
-                character.vel_y = 0
-            if character.check('jump'):
-                if character.vel_x > 0:
-                    character.set_animation('right_walk')
-                else:
-                    character.set_animation('left_walk')
-            if character.check('fall'):
-                if character.vel_x > 0:
-                    character.set_animation('right_squat')
-                else:
-                    character.set_animation('left_squat')
-                character.vel_x = 0
+                collision_obj.rect.y = new_y
+            if collision_obj.vel_y > 0:
+                collision_obj.vel_y = 0
+
+        # horizontal displacement
         if contact_list.count(ch.CONTACT_HIGH) or contact_list.count(ch.CONTACT_WALL):
-            character.vel_x = 0
+            collision_obj.vel_x = 0
             if contact_list.count(ch.CONTACT_RIGHT):
-                character.rect.x = self.rect.x - character.rect.width
+                collision_obj.rect.x = self.rect.x - collision_obj.rect.width
             elif contact_list.count(ch.CONTACT_LEFT):
-                character.rect.x = self.rect.x + self.rect.width
-            if character.check('left'):
-                character.set_animation('left_stand')
-            else:
-                character.set_animation('right_stand')
+                collision_obj.rect.x = self.rect.x + self.rect.width
+
         return contact_list
 
 
