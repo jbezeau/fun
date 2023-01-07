@@ -13,6 +13,7 @@ M = 3
 S = 6
 D = 10
 WOUND_LEVELS = [N, L, M, S, D]
+LIGHT_PISTOL = (3, M, 2)
 
 # character attributes
 PWR = 'Power'
@@ -39,11 +40,23 @@ def die(character, _=None):
 
 # common actions for characters on the mean streets
 def punch(attacker, target):
-    if attacker.is_frame_num(2):
+    if target and attacker.is_frame_num(2):
         # hit on frame 3
         damage = (attacker.stats[PWR], M, 1)
         dmg = fight(attacker, target, damage)
         _status(target, dmg, STUN)
+    _finish_action(attacker)
+
+
+def pistol(attacker, target):
+    if target and attacker.is_frame_num(3):
+        # hit on frame 4
+        dmg = shoot(attacker, target, LIGHT_PISTOL)
+        _status(target, dmg, WOUND)
+    _finish_action(attacker)
+
+
+def _finish_action(attacker):
     if attacker.is_animation_over():
         if attacker.check('left'):
             attacker.set_animation('left_stand')

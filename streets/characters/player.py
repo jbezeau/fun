@@ -1,6 +1,7 @@
 import pygame
 import streets.characters.characters as c
 import streets.characters.actions as a
+import streets.environment.environment as e
 
 X = 0
 Y = 1
@@ -14,16 +15,29 @@ CASUAL = 'Act Casual'
 class Player(c.Character):
     def __init__(self, position, sheet, animation, env):
         super(Player, self).__init__(position, sheet, animation, env)
-        self.stats = {a.STUN: 0, a.WOUND: 0, a.FIGHT: 4, a.PWR: 3, a.RES: 3}
+        self.stats = {a.STUN: 0, a.WOUND: 0, a.FIGHT: 4, a.SHOOT: 4, a.PWR: 3, a.RES: 3}
         self.interactions = {SMOKE: self.smoke, CASUAL: None, FIGHT: None}
 
     def update(self):
         self.get_input()
+        self.get_target()
+        if self.check(FIGHT) and self._target is not None:
+            self.shoot()
         super(Player, self).update()
 
     def smoke(self, char):
         self.vel_x = 0
         self.set_animation('right_smoke', a.idle, None, True)
+
+    def shoot(self):
+        # shoot when we can see the target
+        # simplified check: are we facing the right way
+        if self._target.rect.x > self.rect.x and self.check('right'):
+            self.vel_x = 0
+            self.set_animation('right_shoot', a.pistol, self._target, True)
+        elif self._target.rect.x < self.rect.x and self.check('left'):
+            self.vel_x = 0
+            self.set_animation('left_shoot', a.pistol, self._target, True)
 
     def bump(self, char):
         if self.check(FIGHT):
@@ -55,6 +69,11 @@ class Player(c.Character):
                 self.right_input((adj_x, adj_y))
             else:
                 self.left_input((adj_x, adj_y))
+
+    def get_target(self):
+        tgt = self.env.get_mouse_over([e.NPC])
+        if tgt:
+            self._target = tgt
 
 
 def _min_limit(val, shift, min_value):

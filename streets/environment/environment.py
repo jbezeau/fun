@@ -1,5 +1,10 @@
 import pygame
 
+ITEMS = 'Items'
+INTERACTIVE = 'Interactive'
+PLAYER = 'Player'
+NPC = 'Non-Player'
+
 
 class Environment:
     def __init__(self, screen):
@@ -67,3 +72,21 @@ class Environment:
         self.non_player.draw(self._surface)
 
         screen.blit(self._surface, (0, 0))
+
+    def get_mouse_over(self, groups):
+        mouse_point = pygame.mouse.get_pos()
+        mouse_rect = pygame.Rect(mouse_point, (1, 1))
+        mouse_over = None
+
+        if PLAYER in groups:
+            mouse_over = mouse_rect.collidedict(self.player.spritedict)
+        if NPC in groups and mouse_over is None:
+            mouse_over = mouse_rect.collidedict(self.non_player.spritedict)
+        if INTERACTIVE in groups and mouse_over is None:
+            mouse_over = mouse_rect.collidedict(self.interactive.spritedict)
+        if ITEMS in groups and mouse_over is None:
+            mouse_over = mouse_rect.collidedict(self.items.spritedict)
+
+        if mouse_over:
+            for o in mouse_over:
+                return o

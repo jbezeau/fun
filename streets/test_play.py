@@ -39,19 +39,17 @@ def interact_loop(environment):
         pygame.display.flip()
 
         mouse_rect = pygame.Rect(pygame.mouse.get_pos(), (1, 1))
-        interact_collide = mouse_rect.collidedict(environment.interactive.spritedict)
-        if interact_collide:
-            for ic in interact_collide:
-                if ic and ic != interaction_object:
-                    interactions.empty()
-                    interaction_object = ic
-                    ic_interacts = list(ic.interactions.keys())
-                    for ic_key in ic_interacts:
-                        if ic.selected_interaction == ic_key:
-                            text_colour = (255, 255, 128)
-                        else:
-                            text_colour = (255, 255, 255)
-                        interactions.add(InteractionItem(ic.rect, ic_key, text_colour))
+        ic = environment.get_mouse_over([en.INTERACTIVE])
+        if ic and ic != interaction_object:
+            interactions.empty()
+            interaction_object = ic
+            ic_interacts = list(ic.interactions.keys())
+            for ic_key in ic_interacts:
+                if ic.selected_interaction == ic_key:
+                    text_colour = (255, 255, 128)
+                else:
+                    text_colour = (255, 255, 255)
+                interactions.add(InteractionItem(ic.rect, ic_key, text_colour))
 
         for interact_event in pygame.event.get():
             if interact_event.type == pygame.QUIT:

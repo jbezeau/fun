@@ -218,11 +218,9 @@ class Model(Actor):
         # obstacles is set of terrain to navigate
         # this is incredibly over-engineered for default behaviour of walking until you hit something
         if self.contact.count(CONTACT_RIGHT):
-            self.left_input((-5, 0))
+            self.left_input((-3, 0))
         elif self.contact.count(CONTACT_LEFT):
-            self.right_input((5, 0))
-        elif self.check('smoke') or self.check('stand'):
-            self.left_input((-5, 0))
+            self.right_input((3, 0))
 
 
 class Character(Model):
@@ -279,11 +277,12 @@ class Punk(Character):
         self.stats = {actions.STUN: 0, actions.WOUND: 0, actions.FIGHT: 5, actions.PWR: 5, actions.RES: 5}
 
     def provoke(self, char):
-        print('You know what? Fuck you!')
-        if char.rect.x < self.rect.x:
-            self.left_input((-10, 0))
-        elif char.rect.x > self.rect.x:
-            self.right_input((10, 0))
+        if char:
+            print('You know what? Fuck you!')
+            if char.rect.x < self.rect.x:
+                self.left_input((-10, 0))
+            elif char.rect.x > self.rect.x:
+                self.right_input((10, 0))
 
     def bump(self, char):
         if self.check('walk') or self.check('stand'):
