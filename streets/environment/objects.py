@@ -30,6 +30,7 @@ class Corpse(Object):
         self.rect = char.rect
         self.follow = None
         self.interactions[MOVE] = self.take
+        self.selected_interaction = None
 
     def update(self):
         # use inherited "falling object" behaviour
@@ -37,13 +38,21 @@ class Corpse(Object):
 
         # get dragged around
         if self.follow:
-            self.rect.x = self.follow.x
-            self.rect.y = self.follow.y
+            self.rect.x += (self.follow.rect.x - self.rect.x) // 2
+            self.rect.y += (self.follow.rect.y - self.rect.height // 2 - self.rect.y) // 2
+
+    def interact(self, action_name, char):
+        # different definition for objects than characters!
+        interaction_func = self.interactions.get(action_name)
+        if interaction_func:
+            interaction_func(char)
 
     def leave(self, char):
         self.follow = None
-        self.interactions[MOVE] = self.move
+        self.interactions.pop(LEAVE)
+        self.interactions[MOVE] = self.take
 
     def take(self, char):
         self.follow = char
+        self.interactions.pop(MOVE)
         self.interactions[LEAVE] = self.leave

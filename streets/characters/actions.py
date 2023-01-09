@@ -34,7 +34,9 @@ def idle(character, _=None):
 
 def die(character, _=None):
     if character.is_animation_over():
-        character.env.items.add(obj.Corpse(character))
+        corpse = obj.Corpse(character)
+        character.env.items.add(corpse)
+        character.env.interactive.add(corpse)
         character.kill()
 
 

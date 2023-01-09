@@ -237,7 +237,7 @@ class Character(Model):
     def update(self):
         super(Character, self).update()
         injury = max(self.stats.get(actions.STUN), self.stats.get(actions.WOUND))
-        if injury > 9:
+        if injury > 9 and not self.check('die'):
             if self.check('left'):
                 self.set_animation('left_die', actions.die, None, True)
             else:
@@ -285,15 +285,12 @@ class Punk(Character):
                 self.right_input((10, 0))
 
     def bump(self, char):
-        if self.check('walk') or self.check('stand'):
-            print('Hey, asshole!')
-            # NPC subclasses will override this to change character behaviour
-            if char.rect.x > self.rect.x:
-                self.left_input((0, 0))
-                self.set_animation('right_punch', actions.punch, char)
-            else:
-                self.right_input((0, 0))
-                self.set_animation('left_punch', actions.punch, char)
+        if char.rect.x > self.rect.x:
+            self.left_input((0, 0))
+            self.set_animation('right_punch', actions.punch, char, True)
+        else:
+            self.right_input((0, 0))
+            self.set_animation('left_punch', actions.punch, char, True)
         char.vel_x = 0
         char.zero_input()
 

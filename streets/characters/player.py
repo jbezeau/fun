@@ -72,8 +72,7 @@ class Player(c.Character):
 
     def get_target(self):
         tgt = self.env.get_mouse_over([e.NPC])
-        if tgt:
-            self._target = tgt
+        self._target = tgt
 
 
 def _min_limit(val, shift, min_value):

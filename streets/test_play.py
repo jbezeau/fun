@@ -8,8 +8,14 @@ import characters.player as pl
 
 SCREEN_SIZE = (960, 960)
 
+# coordinate indexes
 X = 0
 Y = 1
+
+# mouse buttons
+L = 0
+M = 1
+R = 2
 
 
 def mouse_trail(last_mouse, colour):
@@ -132,6 +138,15 @@ if __name__ == '__main__':
             if event.type == pygame.QUIT:
                 playing = False
             if event.type == pygame.MOUSEBUTTONDOWN:
-                playing = interact_loop(env)
+                # reset player on right-click
+                click = pygame.mouse.get_pressed()
+                if click[L]:
+                    playing = interact_loop(env)
+                elif click[R]:
+                    for sprite in env.player.sprites():
+                        sprite.kill()
+                    new_char = pl.Player(pygame.mouse.get_pos(), 'sprite/neon_hawk', 'right_smoke', env)
+                    env.player.add(new_char)
+                    env.interactive.add(new_char)
 
     pygame.quit()
