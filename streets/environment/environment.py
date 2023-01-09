@@ -32,23 +32,6 @@ class Environment:
                 for o in obstacle_list:
                     o.collide(i, len(obstacle_list))
 
-        collision = pygame.sprite.groupcollide(self.non_player, self.obstacles, False, False)
-        # check for all contact between NPCs and obstacles
-        for n in collision:
-            for o in collision[n]:
-                # build one comprehensive list of spots where they're touching stuff
-                for c in o.collide(n, len(collision[n])):
-                    # we've got n by value, not by reference!
-                    n.contact.append(c)
-            # NPCs only try navigating when they're touching the environment
-            n.navigate()
-
-        collision = pygame.sprite.groupcollide(self.player, self.obstacles, False, False)
-        for p in collision:
-            for o in collision[p]:
-                for c in o.collide(p, len(collision[p])):
-                    p.contact.append(c)
-
         collision = pygame.sprite.groupcollide(self.non_player, self.non_player, False, False, pygame.sprite.collide_mask)
         for n in collision:
             for n2 in collision[n]:

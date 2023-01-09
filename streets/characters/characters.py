@@ -7,6 +7,7 @@ from streets.characters import actions
 import streets.environment.objects as obj
 
 
+ANIMATION_SPEED = 0.1
 CHARACTER_SIZE = (64, 128)
 STAIR_HEIGHT = 16
 X = 0
@@ -48,27 +49,26 @@ def load_animations():
 
 
 class Actor(pygame.sprite.Sprite):
-    def __init__(self):
+    def __init__(self, position):
         super(Actor, self).__init__()
         self.image = pygame.Surface(CHARACTER_SIZE)
         self.image.fill(sprites.COLOUR_KEY)
         self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = position
         self.vel_x = 0
         self.vel_y = 0
-        self.contact = []
 
     def update(self):
         self.rect.x += self.vel_x
         self.rect.y += self.vel_y
         self.vel_y += 1
-        self.contact.clear()
 
 
 class Model(Actor):
-    def __init__(self, position, sheet_name, default_a):
-        super(Model, self).__init__()
+    def __init__(self, position, sheet_name, default_a, environment):
+        super(Model, self).__init__(position)
         self._frame = 0
-        self._speed = 0.1
+        self._speed = ANIMATION_SPEED
         self._sheet_name = None
         self._sheet = None
         self._tag = None
@@ -76,7 +76,8 @@ class Model(Actor):
         self._locked = False
         self.set_sheet(sheet_name)
         self.set_animation(default_a)
-        self.rect.x, self.rect.y = position
+        self.contact = []
+        self.env = environment
 
     def set_sheet(self, sheet_name):
         if sheet_name:
@@ -109,6 +110,13 @@ class Model(Actor):
 
     def update(self):
         super(Model, self).update()
+
+        collisions = pygame.sprite.spritecollide(self, self.env.obstacles, False)
+        self.contact.clear()
+        for o in collisions:
+            touching = o.collide(self, len(collisions))
+            for t in touching:
+                self.contact.append(t)
 
         # apex of jump
         if self.check('jump') and self.vel_y > STAIR_HEIGHT + 1:
@@ -225,14 +233,13 @@ class Model(Actor):
 
 class Character(Model):
     def __init__(self, position, sheet, animation, environment):
-        super(Character, self).__init__(position, sheet, animation)
+        super(Character, self).__init__(position, sheet, animation, environment)
         self.stats = {actions.STUN: 0, actions.WOUND: 0, actions.FIGHT: 4, actions.PWR: 3, actions.RES: 3}
         self.interactions = {}
         self.selected_interaction = None
         self._action_function = None
         self._target = None
         self._item_group = None
-        self.env = environment
 
     def update(self):
         super(Character, self).update()

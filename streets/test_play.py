@@ -7,6 +7,7 @@ import characters.player as pl
 
 
 SCREEN_SIZE = (960, 960)
+FPS = 30
 
 # coordinate indexes
 X = 0
@@ -34,7 +35,7 @@ def interact_loop(environment):
 
     interacting = True
     while interacting:
-        clock.tick(60)
+        clock.tick(FPS)
         screen.fill((64, 0, 0))
         environment.draw(screen)
         i_pos = mouse_trail(i_pos, (0, 255, 0))
@@ -126,7 +127,7 @@ if __name__ == '__main__':
 
     playing = True
     while playing:
-        clock.tick(60)
+        clock.tick(FPS)
         screen.fill((0, 32, 32))
         env.update()
         env.draw(screen)

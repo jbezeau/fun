@@ -41,10 +41,10 @@ def get_contact_pos(char_rect, obj_rect):
     # value between 0 and character dimension represents degree to which object is imposing from
     # that side of the character's hit box
 
-    top_contact = (obj_rect.y + obj_rect.height - char_rect.y)
-    left_contact = (obj_rect.x + obj_rect.width - char_rect.x)
-    right_contact = (char_rect.x + char_rect.width - obj_rect.x)
-    bottom_contact = (char_rect.y + char_rect.height - obj_rect.y)
+    top_contact = (obj_rect.bottom - char_rect.top)
+    left_contact = (obj_rect.right - char_rect.left)
+    right_contact = (char_rect.right - obj_rect.left)
+    bottom_contact = (char_rect.bottom - obj_rect.top)
 
     contact = []
     if char_rect.height // 3 > bottom_contact:
