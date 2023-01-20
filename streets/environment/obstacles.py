@@ -3,8 +3,12 @@ import streets.sprite.colours as co
 import streets.characters.characters as ch
 
 
+# environmental colours
+CONCRETE = (128, 128, 128)
+
+
 class Obstacle(pygame.sprite.Sprite):
-    def __init__(self, pos, size):
+    def __init__(self, pos, size, colour=CONCRETE):
         super(Obstacle, self).__init__()
         self.image = pygame.Surface(size)
         self.image.fill(co.GRAY3)

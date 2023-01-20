@@ -1,5 +1,7 @@
 import pygame
 
+BLANK = (128, 128, 128)
+
 ITEMS = 'Items'
 INTERACTIVE = 'Interactive'
 PLAYER = 'Player'
@@ -14,8 +16,10 @@ class Environment:
         self.interactive = pygame.sprite.Group()
         self.player = pygame.sprite.GroupSingle()
         self.non_player = pygame.sprite.Group()
+
+        # surface for drawing physical game objects
         self._surface = pygame.Surface(screen.get_size())
-        self._surface.set_colorkey((0, 0, 0))
+        self._surface.set_colorkey(BLANK)
 
     def update(self):
         # update, collide, and draw everything
@@ -45,12 +49,15 @@ class Environment:
                 p.bump(n)
 
     def draw(self, screen):
-        self._surface.fill((0, 0, 0))
+        self._surface.fill(BLANK)
         self.obstacles.draw(self._surface)
         self.interactive.draw(self._surface)
         self.items.draw(self._surface)
         self.player.draw(self._surface)
         self.non_player.draw(self._surface)
+
+        for player in self.player.sprites():
+            player.draw_ar(screen)
 
         screen.blit(self._surface, (0, 0))
 

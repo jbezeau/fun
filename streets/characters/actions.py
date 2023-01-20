@@ -25,6 +25,8 @@ WOUND = 'Wound'
 FIGHT = 'Fighting'
 SHOOT = 'Shooting'
 
+# AR abilities
+HIGHLIGHT = 'Highlight'
 
 def idle(character, _=None):
     if character.is_animation_over():

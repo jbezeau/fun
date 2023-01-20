@@ -271,10 +271,11 @@ class Character(Model):
 
     def check(self, tag):
         # override status check to look at state name as well
-        if super(Character, self).check(tag):
-            return True
-        if self.selected_interaction:
-            return tag in self.selected_interaction
+        chk = super(Character, self).check(tag)
+        if not chk:
+            if self.selected_interaction:
+                chk = tag in self.selected_interaction
+        return chk
 
 
 class Punk(Character):

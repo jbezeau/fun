@@ -38,7 +38,7 @@ class Corpse(Object):
 
         # get dragged around
         if self.follow:
-            self.rect.x += (self.follow.rect.x - self.rect.x) // 2
+            self.rect.x += (self.follow.rect.x - self.rect.width // 2 - self.rect.x) // 2
             self.rect.y += (self.follow.rect.y - self.rect.height // 2 - self.rect.y) // 2
 
     def interact(self, action_name, char):
