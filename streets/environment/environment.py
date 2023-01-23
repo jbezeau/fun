@@ -1,6 +1,8 @@
 import pygame
 
 BLANK = (128, 128, 128)
+AR_RED = (255, 64, 16)
+AR_BLUE = (64, 16, 255)
 
 ITEMS = 'Items'
 INTERACTIVE = 'Interactive'
@@ -20,8 +22,13 @@ class Environment:
         # surface for drawing physical game objects
         self._surface = pygame.Surface(screen.get_size())
         self._surface.set_colorkey(BLANK)
+        self._ar_surface = pygame.Surface(screen.get_size())
+        self._ar_surface.set_colorkey(BLANK)
 
     def update(self):
+        # AR surface is drawn on by sprite updates so do here
+        self._ar_surface.fill(BLANK)
+
         # update, collide, and draw everything
         self.obstacles.update()
         self.interactive.update()
@@ -56,10 +63,13 @@ class Environment:
         self.player.draw(self._surface)
         self.non_player.draw(self._surface)
 
-        for player in self.player.sprites():
-            player.draw_ar(screen)
-
         screen.blit(self._surface, (0, 0))
+        screen.blit(self._ar_surface, (0, 0))
+
+    def add_ar_rect(self, category, area, colour):
+        for p in self.player.sprites():
+            if category in p.ar:
+                pygame.draw.rect(self._ar_surface, colour, area, 1)
 
     def get_mouse_over(self, groups):
         mouse_point = pygame.mouse.get_pos()

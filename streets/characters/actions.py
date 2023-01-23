@@ -26,7 +26,10 @@ FIGHT = 'Fighting'
 SHOOT = 'Shooting'
 
 # AR abilities
-HIGHLIGHT = 'Highlight'
+AR_HIGHLIGHT = 'Highlight'
+AR_HEALTH = 'Health'
+AR_ID = 'Identity'
+
 
 def idle(character, _=None):
     if character.is_animation_over():

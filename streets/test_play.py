@@ -110,7 +110,6 @@ if __name__ == '__main__':
 
     env = en.Environment(screen)
     char = pl.Player((480, 480), 'sprite/neon_hawk', 'right_smoke', env)
-    char.set_ar_surface(screen)
     shade = ch.Punk((600, 480), 'sprite/test_sheet', 'right_smoke', env)
     ground = ob.Obstacle((40, 800), (800, 32))
     block = ob.Obstacle((440, 780), (80, 20))

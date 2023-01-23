@@ -2,9 +2,9 @@ import glob
 import pickle
 import pygame
 from pygame import image
-from streets.sprite import sprites
-from streets.characters import actions
-import streets.environment.objects as obj
+from streets.sprite import sprites as s
+from streets.characters import actions as a
+import streets.environment.environment as e
 
 
 ANIMATION_SPEED = 0.1
@@ -40,7 +40,7 @@ def load_animations():
             if not sprite_series:
                 sprite_series = []
                 sheet_animations[tag_list[index]] = sprite_series
-            lil_pic = pygame.Surface(sprites.SPRITE_SIZE)
+            lil_pic = pygame.Surface(s.SPRITE_SIZE)
             lil_pic.blit(sheet_image, (0, 0), pos_list[index])
             new_sprite = pygame.transform.scale(lil_pic, CHARACTER_SIZE)
             sprite_series.append(new_sprite)
@@ -52,7 +52,7 @@ class Actor(pygame.sprite.Sprite):
     def __init__(self, position):
         super(Actor, self).__init__()
         self.image = pygame.Surface(CHARACTER_SIZE)
-        self.image.fill(sprites.COLOUR_KEY)
+        self.image.fill(s.COLOUR_KEY)
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = position
         self.vel_x = 0
@@ -151,7 +151,7 @@ class Model(Actor):
             self._frame = (self._frame + self._speed) % len(self._frames)
             frame_image = self._frames[int(self._frame)]
             self.image = pygame.transform.scale(frame_image, CHARACTER_SIZE)
-            self.image.set_colorkey(sprites.COLOUR_KEY)
+            self.image.set_colorkey(s.COLOUR_KEY)
             if self.is_animation_over():
                 self._locked = False
 
@@ -234,7 +234,7 @@ class Model(Actor):
 class Character(Model):
     def __init__(self, position, sheet, animation, environment):
         super(Character, self).__init__(position, sheet, animation, environment)
-        self.stats = {actions.STUN: 0, actions.WOUND: 0, actions.FIGHT: 4, actions.PWR: 3, actions.RES: 3}
+        self.stats = {a.STUN: 0, a.WOUND: 0, a.FIGHT: 4, a.PWR: 3, a.RES: 3}
         self.interactions = {}
         self.selected_interaction = None
         self._action_function = None
@@ -243,12 +243,13 @@ class Character(Model):
 
     def update(self):
         super(Character, self).update()
-        injury = max(self.stats.get(actions.STUN), self.stats.get(actions.WOUND))
+        injury = max(self.stats.get(a.STUN), self.stats.get(a.WOUND))
+        self.draw_health()
         if injury > 9 and not self.check('die'):
             if self.check('left'):
-                self.set_animation('left_die', actions.die, None, True)
+                self.set_animation('left_die', a.die, None, True)
             else:
-                self.set_animation('right_die', actions.die, None, True)
+                self.set_animation('right_die', a.die, None, True)
         if self._action_function:
             # action function is a one-time thing, like throwing a punch
             self._action_function(self, self._target)
@@ -277,12 +278,26 @@ class Character(Model):
                 chk = tag in self.selected_interaction
         return chk
 
+    def draw_health(self):
+        wounds = min(self.stats.get(a.WOUND), 10)
+        if wounds:
+            by = self.rect.y + 2
+            bx = self.rect.x + 2
+            bw = wounds * 6
+            self.env.add_ar_rect(a.AR_HEALTH, pygame.Rect(bx, by, bw, 5), e.AR_RED)
+        stuns = min(self.stats.get(a.STUN), 10)
+        if stuns:
+            by = self.rect.y + 8
+            bx = self.rect.x + 2
+            bw = stuns * 6
+            self.env.add_ar_rect(a.AR_HEALTH, pygame.Rect(bx, by, bw, 5), e.AR_BLUE)
+
 
 class Punk(Character):
     def __init__(self, position, sheet, animation, env):
         super(Punk, self).__init__(position, sheet, animation, env)
         self.interactions = {'Provoke': self.provoke}
-        self.stats = {actions.STUN: 0, actions.WOUND: 0, actions.FIGHT: 5, actions.PWR: 5, actions.RES: 5}
+        self.stats = {a.STUN: 0, a.WOUND: 0, a.FIGHT: 5, a.PWR: 5, a.RES: 5}
 
     def provoke(self, char):
         if char:
@@ -295,10 +310,10 @@ class Punk(Character):
     def bump(self, char):
         if char.rect.x > self.rect.x:
             self.left_input((0, 0))
-            self.set_animation('right_punch', actions.punch, char, True)
+            self.set_animation('right_punch', a.punch, char, True)
         else:
             self.right_input((0, 0))
-            self.set_animation('left_punch', actions.punch, char, True)
+            self.set_animation('left_punch', a.punch, char, True)
         char.vel_x = 0
         char.zero_input()
 

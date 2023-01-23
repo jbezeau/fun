@@ -9,8 +9,6 @@ Y = 1
 
 # AR parameters
 AR_FONT_SIZE = 16
-AR_RED = (255, 32, 0)
-AR_BLUE = (32, 0, 255)
 
 # action constants
 FIGHT = 'Fight'
@@ -26,16 +24,9 @@ class Player(c.Character):
 
         # surface for augmented reality effects
         # can be turned on/off, suffer interference, etc.
-        self._ar_surface = None
-        self.ar = [a.HIGHLIGHT, a.WOUND, a.STUN]
-
-    def set_ar_surface(self, screen):
-        # pass the screen in to character so we can define AR display area
-        self._ar_surface = pygame.Surface(screen.get_size())
-        self._ar_surface.set_colorkey(e.BLANK)
+        self.ar = [a.AR_HIGHLIGHT, a.AR_HEALTH, a.AR_ID]
 
     def update(self):
-        self._ar_surface.fill(e.BLANK)
         self.get_input()
         self.get_target()
         if self.check(FIGHT) and self._target is not None:
@@ -90,20 +81,8 @@ class Player(c.Character):
     def get_target(self):
         tgt = self.env.get_mouse_over([e.NPC])
         self._target = tgt
-        if tgt and self._ar_surface:
-            small_font = pygame.font.Font(None, AR_FONT_SIZE)
-            if a.HIGHLIGHT in self.ar:
-                pygame.draw.rect(self._ar_surface, AR_RED, tgt.rect, 1)
-            if a.WOUND in self.ar:
-                wound_num = small_font.render(str(tgt.stats.get(a.WOUND)), False, AR_RED)
-                self._ar_surface.blit(wound_num, (tgt.rect.x + 2, tgt.rect.y + 2))
-            if a.STUN in self.ar:
-                stun_num = small_font.render(str(tgt.stats.get(a.STUN)), False, AR_BLUE)
-                self._ar_surface.blit(stun_num, (tgt.rect.x + 2, tgt.rect.y + 4 + AR_FONT_SIZE))
-
-    def draw_ar(self, screen):
-        if self.ar:
-            screen.blit(self._ar_surface, (0, 0))
+        if tgt:
+            self.env.add_ar_rect(a.AR_HIGHLIGHT, tgt.rect, e.AR_RED)
 
 
 def _min_limit(val, shift, min_value):
