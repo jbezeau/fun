@@ -13,6 +13,8 @@ def load_sprite_sheet():
         new_sheet.fill(sprites.COLOUR_KEY)
         return new_sheet, {}, 'new_sheet'
 
+    sprites.screen.fill((0, 0, 0))
+
     # list sprite sheets on screen
     sprites.draw_status_text('Select sprite sheet file', sprites.STATUS_GREEN)
 
@@ -123,24 +125,52 @@ if __name__ == '__main__':
     pygame.display.set_caption('Sprite Sheet Viewer')
 
     sprite_sheet, sprite_meta, save_filename = load_sprite_sheet()
+    sprites.screen.blit(sprite_sheet, (0, 0))
+    layer_images = {}
+    layer_display = None
     pygame.display.set_caption(save_filename)
 
     waiting = True
     while waiting:
+        sprites.clock.tick(60)
         pygame.display.flip()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 waiting = False
+
             if event.type == pygame.MOUSEBUTTONDOWN:
-                sprites.screen.blit(sprite_sheet, (0, 0))
+                # click should refresh the screen in case anything goes weird
+                if layer_display is not None:
+                    # unsafe check, we just crash if layer is depopulated somehow
+                    sprites.screen.blit(layer_images[layer_display], (0, 0))
+                else:
+                    sprites.screen.blit(sprite_sheet, (0, 0))
+
             if event.type == pygame.KEYDOWN:
-                sprites.screen.blit(sprite_sheet, (0, 0))
                 if event.key == pygame.K_BACKQUOTE:
+                    # search depends on tags which only lines up with sprite sheet
+                    sprites.screen.blit(sprite_sheet, (0, 0))
                     search = sprites.get_text_input('Enter tag to search ', None)
                     if search is not None:
                         result_rect = search_sprite(sprite_sheet, sprite_meta, search)
                         sprites.draw_status_text(f'Selection: {tuple(result_rect)}')
+                elif pygame.K_9 >= event.key >= pygame.K_0:
+                    # load additional sprite sheet for comparison
+                    if layer_images.get(event.key) is None:
+                        # we can't load a new image to a layer that's already assigned
+                        layer_image, layer_meta, layer_name = load_sprite_sheet()
+                        layer_images[event.key] = layer_image
+
+                    # stacking images using alpha makes things dark so let's just toggle
+                    if layer_display != event.key:
+                        layer_display = event.key
+                        sprites.screen.blit(layer_image, (0, 0))
+                    else:
+                        layer_display = None
+                        sprites.screen.blit(sprite_sheet, (0, 0))
+
                 else:
+                    # save
                     new_filename = save_sprite_sheet(sprite_sheet, sprite_meta, save_filename)
                     if new_filename is not None:
                         save_sprite_sheet(new_filename)
