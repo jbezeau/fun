@@ -4,21 +4,18 @@ import glob
 import sprites
 
 
+NEW = 'New Sheet'
+
+
 def load_sprite_sheet():
     sheet_list = glob.glob('*.png')
-
-    if len(sheet_list) == 0:
-        # create new sheet on empty directory
-        new_sheet = pygame.Surface(sprites.SHEET_SIZE)
-        new_sheet.fill(sprites.COLOUR_KEY)
-        return new_sheet, {}, 'new_sheet'
-
     sprites.screen.fill((0, 0, 0))
 
     # list sprite sheets on screen
     sprites.draw_status_text('Select sprite sheet file', sprites.STATUS_GREEN)
 
     sheet_set = {}
+    new_file = {}
     x, y = (2, 34)
     for sheet_name in sheet_list:
         sheet_text = sprites.font.render(sheet_name, True, sprites.TEXT_COLOUR)
@@ -30,6 +27,11 @@ def load_sprite_sheet():
         if y + sprites.font.get_height() > sprites.screen.get_height():
             y = 34
             x += sprites.screen.get_width()//8
+    new_text = sprites.font.render(NEW, True, sprites.TEXT_COLOUR)
+    new_rect = new_text.get_rect()
+    new_rect.x, new_rect.y = (x, y)
+    sprites.screen.blit(new_text, (x, y))
+    new_file[tuple(new_rect)] = NEW
 
     # choose template sheet
     loading = True
@@ -54,6 +56,12 @@ def load_sprite_sheet():
                         load_meta = {}
                     sprites.screen.fill(sprites.SCREEN_COLOUR)
                     return load_sheet, load_meta, png_name[:-4]
+                elif select_mouse_pos.collidedict(new_file):
+                    # create new sheet on empty directory
+                    new_sheet = pygame.Surface(sprites.SHEET_SIZE)
+                    new_sheet.fill(sprites.COLOUR_KEY)
+                    return new_sheet, {}, 'new_sheet'
+
     # we should never see this
     return None, None, None
 
@@ -164,7 +172,7 @@ if __name__ == '__main__':
                     # stacking images using alpha makes things dark so let's just toggle
                     if layer_display != event.key:
                         layer_display = event.key
-                        sprites.screen.blit(layer_image, (0, 0))
+                        sprites.screen.blit(layer_images[event.key], (0, 0))
                     else:
                         layer_display = None
                         sprites.screen.blit(sprite_sheet, (0, 0))

@@ -9,13 +9,27 @@ class Editor:
     # need to start bundling data together
     # connection between editor and sprite on sheet must be intimate
     def __init__(self, sprite, editor, copy_editor=None):
+        # support animation
         self.animation = None
         self.frame_count = 0
+
+        # sprite is the location we're working on in the sprite sheet
         self.sprite = sprite
         self.surface, self.tag = self.get_sprite()
-        if copy_editor is not None and self.tag is None:
-            self.surface.blit(copy_editor.surface, (0, 0))
-            self.tag = copy_editor.tag
+
+        # new sprite location has no identity
+        if self.tag is None:
+            # copy image from parent editor
+            if copy_editor is not None:
+                self.surface.blit(copy_editor.surface, (0, 0))
+                self.tag = copy_editor.tag
+
+            l_meta = layer_meta[layer_display]
+            l_tag = l_meta.get(tuple(self.sprite))
+            # match tags with sprite from comparison layer
+            if l_tag is not None:
+                self.tag = l_tag
+
         self.rect = self.surface.get_rect()
         self.rect.x, self.rect.y = editor.x, editor.y
 
@@ -31,13 +45,17 @@ class Editor:
         else:
             my_sprite = pygame.Rect(self.sprite)
         lil_editor = pygame.Surface(sprites.SPRITE_SIZE)
-        lil_editor.blit(sprite_sheet, (0, 0), my_sprite)
+        lil_editor.blit(layer_sheets[layer_display], (0, 0), my_sprite)
         return pygame.transform.scale(lil_editor, sprites.EDITOR_SIZE), sprite_meta.get(tuple(self.sprite))
 
     def save_sprite(self):
         lil_editor = pygame.transform.scale(self.surface, sprites.SPRITE_SIZE)
         sprite_sheet.blit(lil_editor, self.sprite)
-        self.tag = sprites.get_text_input('Sprite tag: ', self.tag)
+        tag = self.tag
+        if tag is None:
+            my_meta = layer_meta[layer_display]
+            tag = my_meta[tuple(self.sprite)]
+        self.tag = sprites.get_text_input('Sprite tag: ', tag)
         return self.tag
 
     def paint(self, colour):
@@ -75,8 +93,17 @@ class Editor:
     def draw(self):
         pygame.draw.rect(work, sprites.COLOUR_KEY, self.rect)
         if self.animation:
-            self.surface, _ = self.get_sprite()
-        work.blit(self.surface, (self.rect.x, self.rect.y))
+            draw_surface, _ = self.get_sprite()
+        elif layer_display != 0:
+            draw_surface, _ = self.get_sprite()
+            work_overlay = pygame.Surface(WORK_SIZE)
+            work_overlay.blit(self.surface, (0, 0))
+            work_overlay.set_colorkey(sprites.COLOUR_KEY)
+            work_overlay.set_alpha(128)
+            draw_surface.blit(work_overlay, (0, 0))
+        else:
+            draw_surface = self.surface
+        work.blit(draw_surface, (self.rect.x, self.rect.y))
 
     def flip(self, x_flip, y_flip):
         self.surface = pygame.transform.flip(self.surface, x_flip, y_flip)
@@ -120,6 +147,9 @@ if __name__ == '__main__':
     pygame.display.set_caption('Sprite Editor')
 
     sprite_sheet, sprite_meta, save_filename = sheets.load_sprite_sheet()
+    layer_sheets = {0: sprite_sheet}
+    layer_meta = {0: sprite_meta}
+    layer_display = 0
 
     editors = {}
     sprite_pos = pygame.Rect((0, 0), sprites.SPRITE_SIZE)
@@ -144,9 +174,11 @@ if __name__ == '__main__':
     draw_colour = None
     while editing:
         sprites.clock.tick(60)
+
         # draw active editors
         for v in list(editors.values()):
             v.draw()
+
         # cover work surface with tint
         overlay.fill(sprites.SCREEN_COLOUR)
         if focus_editor is not None:
@@ -171,16 +203,25 @@ if __name__ == '__main__':
                 sheets.save_sprite_sheet(sprite_sheet, sprite_meta, save_filename)
             if event.type == pygame.KEYDOWN:
                 mods = pygame.key.get_mods()
+
                 if status_shown:
                     # if we show a status, dismiss with any key
                     status_shown = sprites.clear_status_text()
+
                 elif event.key == pygame.K_ESCAPE:
+                    # escape resets comparison layer selection
+                    layer_display = 0
+
                     if focus_editor:
                         # escape resets current editor
                         focus_editor.reset()
                         status_shown = sprites.draw_status_text(
                             f'Reset edits to sprite {tuple(focus_editor.sprite)}', sprites.STATUS_YELLOW)
+
                 elif event.key == pygame.K_BACKQUOTE:
+                    # draw sprite sheet and search
+                    # not layer-aware
+                    layer_display = 0
                     search_default = None
                     if focus_editor:
                         search_default = focus_editor.tag
@@ -222,7 +263,24 @@ if __name__ == '__main__':
                         status_shown = sprites.draw_status_text(f'No room on this column', sprites.STATUS_RED)
 
                 elif focus_editor and event.key == pygame.K_SPACE:
+                    # animation depends on metadata which is only relevant to base sheet
+                    layer_display = 0
                     focus_editor.animate()
+
+                elif pygame.K_9 >= event.key >= pygame.K_0:
+                    # load additional sprite sheet for comparison
+                    # sprite_sheet is mapped to actual 0, not pygame.K_0
+                    if layer_sheets.get(event.key) is None:
+                        # we can't load a new image to a layer that's already assigned
+                        image, meta, name = sheets.load_sprite_sheet()
+                        layer_sheets[event.key] = image
+                        layer_meta[event.key] = meta
+
+                    # once layer is loaded, toggle by tapping number key
+                    if layer_display != event.key:
+                        layer_display = event.key
+                    else:
+                        layer_display = 0
 
                 elif not (event.key == pygame.K_LSHIFT or event.key == pygame.K_RSHIFT):
                     sprites.screen.blit(sprite_sheet, (0, 0))
