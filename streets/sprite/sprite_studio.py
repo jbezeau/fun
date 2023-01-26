@@ -220,36 +220,41 @@ if __name__ == '__main__':
 
                 elif event.key == pygame.K_BACKQUOTE:
                     # draw sprite sheet and search
-                    # not layer-aware
-                    layer_display = 0
                     search_default = None
                     if focus_editor:
                         search_default = focus_editor.tag
                     search = sprites.get_text_input('Enter tag to search: ', search_default)
-                    jump_sprite = sheets.search_sprite(sprite_sheet, sprite_meta, search)
+                    jump_sprite = sheets.search_sprite(layer_sheets[layer_display], layer_meta[layer_display], search)
                     sprites.clear_status_text()
                     if jump_sprite:
                         editors.clear()
                         editor_pos = pygame.Rect((16, 32), sprites.EDITOR_SIZE)
                         focus_editor = Editor(jump_sprite, editor_pos, focus_editor)
                         editors[tuple(focus_editor.click_rect)] = focus_editor
+
                 elif focus_editor and event.key == pygame.K_RETURN:
+                    # save focused editor
                     sprite_meta[tuple(focus_editor.sprite)] = focus_editor.save_sprite()
                     status_shown = sprites.draw_status_text(
                         f'Saved sprite {sprite_meta[tuple(focus_editor.sprite)]}', sprites.STATUS_GREEN)
 
                 elif focus_editor and event.key == pygame.K_UP:
+                    # vertical flip sprite
                     focus_editor.flip(False, True)
                 elif focus_editor and event.key == pygame.K_LEFT:
+                    # horizontal flip sprite
                     if mods == 1 or mods == 2:
+                        # rotate actually if shift held
                         focus_editor.rotate(15)
                     else:
                         focus_editor.flip(True, False)
+
                 elif focus_editor and event.key == pygame.K_RIGHT:
+                    # create next frame, carry tag to new frame if possible
                     if mods == 1 or mods == 2:
+                        # rotate instead if holding shift
                         focus_editor.rotate(-15)
                     else:
-                        # create next frame, carry tag to new frame if possible
                         focus_editor = next_sprite_column(focus_editor)
                         if focus_editor is None:
                             status_shown = sprites.draw_status_text(f'No room on this row', sprites.STATUS_RED)
@@ -283,11 +288,13 @@ if __name__ == '__main__':
                         layer_display = 0
 
                 elif not (event.key == pygame.K_LSHIFT or event.key == pygame.K_RSHIFT):
+                    # save sheet on any uncaught keystroke
                     sprites.screen.blit(sprite_sheet, (0, 0))
                     new_filename = sheets.save_sprite_sheet(sprite_sheet, sprite_meta, save_filename)
                     status_shown = True
                     if new_filename is not None:
                         save_filename = new_filename
+                        
             if event.type == pygame.MOUSEBUTTONDOWN:
                 # handle clicking on palette bar
                 status_shown = sprites.clear_status_text()
