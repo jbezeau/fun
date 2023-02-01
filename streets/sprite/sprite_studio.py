@@ -2,7 +2,31 @@ import pygame
 import sprites
 import sheets
 
+ORIGIN = (0, 0)
+MOUSE_RECT = (1, 1)
+WORK_AREA_OFFSET = (0, 32)
+EDITOR_OFFSET = (16, 32)
+
+# image is rotated 15 degrees at a time
+# have to offset origin of image for blit at each rotate step
+ROTATE_OFFSET = (30, 15)
+ROTATE_INCREMENT = 15
+
+# render display 32px down from top of window
+WORK_Y_OFFSET = 32
 WORK_SIZE = (1280, 896)
+HALF_ALPHA = 128
+MAX_ALPHA = 255
+
+SOURCE_LAYER = 0
+
+# indexes of coordinates in tuples
+X = 0
+Y = 1
+
+# for rectangle collide selections
+AREA = 0
+VALUE = 1
 
 
 class Editor:
@@ -15,13 +39,13 @@ class Editor:
 
         # sprite is the location we're working on in the sprite sheet
         self.sprite = sprite
-        self.surface, self.tag = self.get_sprite()
+        self.surface, self.tag = self.get_sprite(SOURCE_LAYER)
 
         # new sprite location has no identity
         if self.tag is None:
             # copy image from parent editor
             if copy_editor is not None:
-                self.surface.blit(copy_editor.surface, (0, 0))
+                self.surface.blit(copy_editor.surface, ORIGIN)
                 self.tag = copy_editor.tag
 
             l_meta = layer_meta[layer_display]
@@ -33,11 +57,11 @@ class Editor:
         self.rect = self.surface.get_rect()
         self.rect.x, self.rect.y = editor.x, editor.y
 
-        # introduced to compensate for drawing surface being 32 px below top of window
+        # introduced to compensate for drawing surface being WORK_Y_OFFSET px below top of window
         self.click_rect = pygame.Rect(self.rect)
-        self.click_rect.y += 32
+        self.click_rect.y += WORK_Y_OFFSET
 
-    def get_sprite(self):
+    def get_sprite(self, layer):
         if self.animation:
             self.frame_count = (self.frame_count + 1) % (len(self.animation) * 10)
             frame = self.frame_count//10
@@ -45,7 +69,7 @@ class Editor:
         else:
             my_sprite = pygame.Rect(self.sprite)
         lil_editor = pygame.Surface(sprites.SPRITE_SIZE)
-        lil_editor.blit(layer_sheets[layer_display], (0, 0), my_sprite)
+        lil_editor.blit(layer_sheets[layer], ORIGIN, my_sprite)
         return pygame.transform.scale(lil_editor, sprites.EDITOR_SIZE), sprite_meta.get(tuple(self.sprite))
 
     def save_sprite(self):
@@ -63,8 +87,8 @@ class Editor:
         px_x = rel_x-self.rect.x
         px_x = px_x - (px_x % sprites.EDITOR_PIXEL)
 
-        # additional 32px Y offset from status bar at top of screen
-        px_y = rel_y-self.rect.y-32
+        # additional WORK_Y_OFFSETpx Y offset from status bar at top of screen
+        px_y = rel_y-self.rect.y-WORK_Y_OFFSET
         px_y = px_y - (px_y % sprites.EDITOR_PIXEL)
 
         pixel = pygame.Surface((sprites.EDITOR_PIXEL, sprites.EDITOR_PIXEL))
@@ -88,29 +112,35 @@ class Editor:
     def reset(self):
         if self.animation:
             self.animation.clear()
-        self.surface, _ = self.get_sprite()
+        self.surface, _ = self.get_sprite(SOURCE_LAYER)
 
-    def draw(self):
+    def draw(self, alpha=HALF_ALPHA):
         pygame.draw.rect(work, sprites.COLOUR_KEY, self.rect)
         if self.animation:
-            draw_surface, _ = self.get_sprite()
-        elif layer_display != 0:
-            draw_surface, _ = self.get_sprite()
-            work_overlay = pygame.Surface(WORK_SIZE)
-            work_overlay.blit(self.surface, (0, 0))
+            draw_surface, _ = self.get_sprite(layer_display)
+        elif layer_display != SOURCE_LAYER:
+            layer_surface, _ = self.get_sprite(layer_display)
+            draw_surface = layer_surface.copy()
+            work_overlay = self.surface.copy()
             work_overlay.set_colorkey(sprites.COLOUR_KEY)
-            work_overlay.set_alpha(128)
-            draw_surface.blit(work_overlay, (0, 0))
+            work_overlay.set_alpha(alpha)
+            draw_surface.blit(work_overlay, ORIGIN)
         else:
             draw_surface = self.surface
+
         work.blit(draw_surface, (self.rect.x, self.rect.y))
+        return draw_surface.copy()
+
+    def merge_to_image(self):
+        # use draw to render the current image OVER the comparison layer at full opacity
+        self.surface.blit(self.draw(MAX_ALPHA), ORIGIN)
 
     def flip(self, x_flip, y_flip):
         self.surface = pygame.transform.flip(self.surface, x_flip, y_flip)
 
     def rotate(self, angle):
         rotated = pygame.transform.rotate(self.surface, angle)
-        self.surface.blit(rotated, (0, 0), pygame.Rect((30, 15), sprites.EDITOR_SIZE))
+        self.surface.blit(rotated, ORIGIN, pygame.Rect(ROTATE_OFFSET, sprites.EDITOR_SIZE))
 
 
 def next_sprite_column(editor):
@@ -118,10 +148,10 @@ def next_sprite_column(editor):
         return None
 
     new_sprite_pos = pygame.Rect(editor.sprite)
-    new_sprite_pos.x += sprites.SPRITE_SIZE[0]
+    new_sprite_pos.x += sprites.SPRITE_SIZE[X]
     new_editor_pos = pygame.Rect(editor.rect)
-    new_editor_pos.x += sprites.EDITOR_SIZE[0] + 32
-    if sprites.SHEET_SIZE[0] > new_editor_pos.x + sprites.EDITOR_SIZE[0]:
+    new_editor_pos.x += sprites.EDITOR_SIZE[X] + WORK_Y_OFFSET
+    if sprites.SHEET_SIZE[X] > new_editor_pos.x + sprites.EDITOR_SIZE[X]:
         new_editor = Editor(new_sprite_pos, new_editor_pos, editor)
         editors[tuple(new_editor.click_rect)] = new_editor
         return new_editor
@@ -133,10 +163,10 @@ def next_sprite_row(editor):
         return None
 
     new_sprite_pos = pygame.Rect(editor.sprite)
-    new_sprite_pos.y += sprites.SPRITE_SIZE[1]
+    new_sprite_pos.y += sprites.SPRITE_SIZE[Y]
     new_editor_pos = pygame.Rect(editor.rect)
-    new_editor_pos.y += sprites.EDITOR_SIZE[1] + 32
-    if sprites.SHEET_SIZE[1] > new_editor_pos.y + sprites.EDITOR_SIZE[1]:
+    new_editor_pos.y += sprites.EDITOR_SIZE[Y] + WORK_Y_OFFSET
+    if sprites.SHEET_SIZE[Y] > new_editor_pos.y + sprites.EDITOR_SIZE[Y]:
         new_editor = Editor(new_sprite_pos, new_editor_pos, editor)
         editors[tuple(new_editor.click_rect)] = new_editor
         return new_editor
@@ -147,19 +177,19 @@ if __name__ == '__main__':
     pygame.display.set_caption('Sprite Editor')
 
     sprite_sheet, sprite_meta, save_filename = sheets.load_sprite_sheet()
-    layer_sheets = {0: sprite_sheet}
-    layer_meta = {0: sprite_meta}
-    layer_display = 0
+    layer_sheets = {SOURCE_LAYER: sprite_sheet}
+    layer_meta = {SOURCE_LAYER: sprite_meta}
+    layer_display = SOURCE_LAYER
 
     editors = {}
-    sprite_pos = pygame.Rect((0, 0), sprites.SPRITE_SIZE)
-    editor_pos = pygame.Rect((16, 32), sprites.EDITOR_SIZE)
+    sprite_pos = pygame.Rect(ORIGIN, sprites.SPRITE_SIZE)
+    editor_pos = pygame.Rect(EDITOR_OFFSET, sprites.EDITOR_SIZE)
     focus_editor = Editor(sprite_pos, editor_pos)
     editors[tuple(focus_editor.click_rect)] = focus_editor
 
     overlay = pygame.Surface(WORK_SIZE)
     overlay = overlay.convert_alpha()
-    overlay.set_alpha(127)
+    overlay.set_alpha(HALF_ALPHA)
     overlay.set_colorkey(sprites.COLOUR_KEY)
 
     highlight = pygame.Surface(sprites.EDITOR_SIZE)
@@ -184,9 +214,9 @@ if __name__ == '__main__':
         if focus_editor is not None:
             # except focused editor (if any)
             overlay.blit(highlight, focus_editor.rect)
-        work.blit(overlay, (0, 0))
+        work.blit(overlay, ORIGIN)
 
-        sprites.screen.blit(work, (0, 32))
+        sprites.screen.blit(work, WORK_AREA_OFFSET)
         pygame.display.flip()
 
         mouse_x, mouse_y = pygame.mouse.get_pos()
@@ -194,7 +224,7 @@ if __name__ == '__main__':
             sprites.draw_colour_bar()
 
         # check for selecting a colour from the palette
-        mouse_rect = pygame.Rect((mouse_x, mouse_y), (1, 1))
+        mouse_rect = pygame.Rect((mouse_x, mouse_y), MOUSE_RECT)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -210,7 +240,7 @@ if __name__ == '__main__':
 
                 elif event.key == pygame.K_ESCAPE:
                     # escape resets comparison layer selection
-                    layer_display = 0
+                    layer_display = SOURCE_LAYER
 
                     if focus_editor:
                         # escape resets current editor
@@ -228,7 +258,7 @@ if __name__ == '__main__':
                     sprites.clear_status_text()
                     if jump_sprite:
                         editors.clear()
-                        editor_pos = pygame.Rect((16, 32), sprites.EDITOR_SIZE)
+                        editor_pos = pygame.Rect(EDITOR_OFFSET, sprites.EDITOR_SIZE)
                         focus_editor = Editor(jump_sprite, editor_pos, focus_editor)
                         editors[tuple(focus_editor.click_rect)] = focus_editor
 
@@ -245,7 +275,7 @@ if __name__ == '__main__':
                     # horizontal flip sprite
                     if mods == 1 or mods == 2:
                         # rotate actually if shift held
-                        focus_editor.rotate(15)
+                        focus_editor.rotate(ROTATE_INCREMENT)
                     else:
                         focus_editor.flip(True, False)
 
@@ -253,7 +283,7 @@ if __name__ == '__main__':
                     # create next frame, carry tag to new frame if possible
                     if mods == 1 or mods == 2:
                         # rotate instead if holding shift
-                        focus_editor.rotate(-15)
+                        focus_editor.rotate(-1 * ROTATE_INCREMENT)
                     else:
                         focus_editor = next_sprite_column(focus_editor)
                         if focus_editor is None:
@@ -269,7 +299,6 @@ if __name__ == '__main__':
 
                 elif focus_editor and event.key == pygame.K_SPACE:
                     # animation depends on metadata which is only relevant to base sheet
-                    layer_display = 0
                     focus_editor.animate()
 
                 elif pygame.K_9 >= event.key >= pygame.K_0:
@@ -285,24 +314,36 @@ if __name__ == '__main__':
                     if layer_display != event.key:
                         layer_display = event.key
                     else:
-                        layer_display = 0
+                        layer_display = SOURCE_LAYER
+
+                elif event.key == pygame.K_SLASH:
+                    if focus_editor:
+                        if layer_display is not SOURCE_LAYER:
+                            # copy display layer sprite to current editor
+                            focus_editor.merge_to_image()
+                            layer_display = SOURCE_LAYER
+                            sprites.draw_status_text('Comparison layer merged to sprite sheet')
+                        else:
+                            sprites.draw_status_text('Select comparison layer before merging images')
+                    else:
+                        sprites.draw_status_text('Select editor before merging images')
 
                 elif not (event.key == pygame.K_LSHIFT or event.key == pygame.K_RSHIFT):
                     # save sheet on any uncaught keystroke
-                    sprites.screen.blit(sprite_sheet, (0, 0))
+                    sprites.screen.blit(sprite_sheet, ORIGIN)
                     new_filename = sheets.save_sprite_sheet(sprite_sheet, sprite_meta, save_filename)
                     status_shown = True
                     if new_filename is not None:
                         save_filename = new_filename
-                        
+
             if event.type == pygame.MOUSEBUTTONDOWN:
                 # handle clicking on palette bar
                 status_shown = sprites.clear_status_text()
-                sprites.screen.blit(work, (0, 32))
+                sprites.screen.blit(work, WORK_AREA_OFFSET)
                 colour_choice = mouse_rect.collidedict(palette)
                 focus_selection = mouse_rect.collidedict(editors)
                 if colour_choice:
-                    draw_colour = colour_choice[1]
+                    draw_colour = colour_choice[VALUE]
                     status_shown = sprites.draw_status_text('Current colour', draw_colour)
                 if colour_choice is None and focus_selection is None:
                     draw_colour = None
@@ -313,7 +354,7 @@ if __name__ == '__main__':
         if mouse_buttons[0]:
             focus_selection = mouse_rect.collidedict(editors)
             if focus_selection:
-                focus_editor = focus_selection[1]
+                focus_editor = focus_selection[VALUE]
                 if draw_colour:
                     focus_editor.paint(draw_colour)
                     status_shown = sprites.draw_status_text(f'ENTER to save or ESCAPE to reset', draw_colour)
